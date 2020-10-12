@@ -9,8 +9,10 @@ import os
 # tf.compat.v1.disable_eager_execution()
 # tf.config.optimizer.set_jit(True)
 import os
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
+
 
 # ---------- (1) --------------------------------------------------------------------------------------------------------------------------------------
 
@@ -49,9 +51,9 @@ class Surface_Code_Environment_Multi_Decoding_Cycles(gym.Env):
     """
 
     def __init__(self, d=5, p_phys=0.01, p_meas=0.01, error_model="DP", use_Y=True, volume_depth=3,
-                 static_decoder=None):
+                 static_decoder=None, channels_first=True):
+        tf.compat.v1.enable_eager_execution() # make sure eager execution is enabled
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-        print('env init in ' + str(os.getpid()))
         self.d = d
         self.p_phys = p_phys
         self.p_meas = p_meas
@@ -83,11 +85,18 @@ class Surface_Code_Environment_Multi_Decoding_Cycles(gym.Env):
         self.qubit_stabilizers = self.get_stabilizer_list(self.qubits, self.d)
         self.qubit_neighbours = self.get_qubit_neighbour_list(self.d)
         self.completed_actions = np.zeros(self.num_actions, int)
+        self.channels_first = channels_first
+        if channels_first:
+            img_shape = (self.volume_depth + self.n_action_layers,
+                         2 * self.d + 1,
+                         2 * self.d + 1)
+        else:
+            img_shape = (2 * self.d + 1,
+                         2 * self.d + 1,
+                         self.volume_depth + self.n_action_layers)
 
         self.observation_space = gym.spaces.Box(low=0, high=1,
-                                                shape=(self.volume_depth + self.n_action_layers,
-                                                       2 * self.d + 1,
-                                                       2 * self.d + 1),
+                                                shape=img_shape,
                                                 dtype=np.uint8)
 
         self.action_space = gym.spaces.Discrete(self.num_actions)
@@ -124,7 +133,7 @@ class Surface_Code_Environment_Multi_Decoding_Cycles(gym.Env):
         # Update the legal moves available to us
         self.reset_legal_moves()
 
-        return self.board_state
+        return self.board_state if self.channels_first else self.board_state.transpose((1, 2, 0))
 
     def step(self, action):
         """
@@ -157,7 +166,7 @@ class Surface_Code_Environment_Multi_Decoding_Cycles(gym.Env):
             model_input = tf.cast(np.array([current_true_syndrome_vector]), tf.float32)
             decoder_label = self.static_decoder(model_input)
         else:
-            print('faking static decoder')
+            # print('faking static decoder')
             decoder_label = np.zeros(shape=(1, 2))
         reward = 0
 
@@ -216,7 +225,8 @@ class Surface_Code_Environment_Multi_Decoding_Cycles(gym.Env):
                 self.board_state[self.volume_depth + k, :, :] = self.padding_actions(
                     self.completed_actions[k * self.d ** 2:(k + 1) * self.d ** 2])
 
-        return self.board_state, reward, self.done, {}
+        obs = self.board_state if self.channels_first else self.board_state.transpose((1, 2, 0))
+        return obs, reward, self.done, {}
 
     def initialize_state(self):
         """
@@ -400,19 +410,17 @@ class Surface_Code_Environment_Multi_Decoding_Cycles(gym.Env):
 
     def load_static_decoder(self):
         from keras.models import load_model
-        # static_decoder_path = os.path.join(os.getcwd(), "/referee_decoders/nn_d5_X_p5")
         static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
-        # print('loading model')
         self.static_decoder = load_model(static_decoder_path, compile=True)
-        # print('decoder loaded')
 
 
 if __name__ == '__main__':
-    env = Surface_Code_Environment_Multi_Decoding_Cycles()
+    env = Surface_Code_Environment_Multi_Decoding_Cycles(channels_first=False)
     from keras.models import load_model
     import time
-    static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
-    static_decoder = load_model(static_decoder_path, compile=True)
+
+    # static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
+    # static_decoder = load_model(static_decoder_path, compile=True)
     while True:
         done = False
         obs = env.reset()
