@@ -14,9 +14,6 @@ from ray.rllib.models import ModelCatalog
 ModelCatalog.register_custom_model("QECConvModel", ConvModel)
 
 
-# tune.run(PPOTrainer, config={"env": "CartPole-v0", 'framework':'torch'})
-
-
 def make_env():
     import qec
     import gym
@@ -25,9 +22,6 @@ def make_env():
 
 tune.register_env('SurfaceCode-v0', lambda config: make_env())
 
-# tune.run(ImpalaTrainer, config={"env": "SurfaceCode-v0", 'framework':'torch',
-#                                 "model": {"dim": 11, "conv_filters": [[16, [4, 4], 2], [32, [3, 3], 1], [64, [4, 4], 1]],
-#                                           "fcnet_activation": "relu"}})
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, conflict_handler='resolve')
     parser.add_argument('--logdir', required=False, default='./logs',
@@ -36,14 +30,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
     config = dict(env='SurfaceCode-v0',
                   framework='torch',
-                  num_workers=10,
+                  num_workers=7,
                   evaluation_interval=10,
                   evaluation_config=dict(explore=False),
                   model=dict(custom_model='QECConvModel'),
                   prioritized_replay=False,
-                  target_network_update_freq=4000,
+                  target_network_update_freq=5000,
                   lr=5e-5,
-                  exploration_config=dict(epsilon_timesteps=int(1e5)),
+                  exploration_config=dict(epsilon_timesteps=int(2e5)),
                   # timesteps_per_iteration=int(3e3)
                   # model={"dim": 11, "conv_filters": [[64, [3, 3], 2], [128, [2, 2], 2], [512, [2, 2], 2]],
                   #        "fcnet_activation": "relu"}

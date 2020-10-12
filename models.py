@@ -27,7 +27,7 @@ class ConvModel(TorchModelV2, torch.nn.Module):
             nn.Conv2d(in_channels=32, out_channels=32, kernel_size=2, stride=1, padding=0),
             nn.ReLU(),
             nn.Flatten(start_dim=1),
-            nn.Dropout(0.2),
+            # nn.Dropout(0.2),
             nn.Linear(288, 512),
             nn.ReLU(),
             nn.Linear(512, num_outputs)

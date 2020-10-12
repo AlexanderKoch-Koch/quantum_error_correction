@@ -50,7 +50,7 @@ class Surface_Code_Environment_Multi_Decoding_Cycles(gym.Env):
 
     """
 
-    def __init__(self, d=5, p_phys=0.01, p_meas=0.01, error_model="DP", use_Y=True, volume_depth=3,
+    def __init__(self, d=5, p_phys=0.001, p_meas=0.001, error_model="DP", use_Y=True, volume_depth=3,
                  static_decoder=None, channels_first=True):
         tf.compat.v1.enable_eager_execution() # make sure eager execution is enabled
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -169,7 +169,6 @@ class Surface_Code_Environment_Multi_Decoding_Cycles(gym.Env):
             # print('faking static decoder')
             decoder_label = np.zeros(shape=(1, 2))
         reward = 0
-
         if np.argmax(correct_label) == 0 and num_anyons == 0:
             reward = 1.0
         elif np.argmax(decoder_label[0]) != np.argmax(correct_label):
@@ -424,12 +423,18 @@ if __name__ == '__main__':
     while True:
         done = False
         obs = env.reset()
+        step = reward_sum = 0
         while not done:
+            step += 1
             action = env.action_space.sample()
+            action = env.action_space.n - 1
             s = time.time()
             obs, reward, done, info = env.step(action)
-            print('step took; ' + str(time.time() - s))
+            reward_sum += reward
+            # print('step took; ' + str(time.time() - s))
             # inputs = np.zeros((1, 36))
             # s = time.time()
             # output = static_decoder(inputs)
             # print(f'{time.time() - s}')
+
+        print(f'steps: {step} return {reward_sum}')
