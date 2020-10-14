@@ -17,7 +17,7 @@ ModelCatalog.register_custom_model("QECConvModel", ConvModel)
 def make_env():
     import qec
     import gym
-    return gym.make('SurfaceCode-v0', channels_first=True)
+    return gym.make('SurfaceCode-v0', channels_first=True, error_model='X', volume_depth=5)
 
 
 tune.register_env('SurfaceCode-v0', lambda config: make_env())
@@ -36,8 +36,12 @@ if __name__ == '__main__':
                   model=dict(custom_model='QECConvModel'),
                   prioritized_replay=False,
                   target_network_update_freq=5000,
+                  buffer_size=int(5e4),
                   lr=5e-5,
-                  exploration_config=dict(epsilon_timesteps=int(2e5)),
+                  # n_step=3,
+                  exploration_config=dict(epsilon_timesteps=int(2e5),
+                                          initial_epsilon=1.0,
+                                          final_epsilon=0.001),
                   # timesteps_per_iteration=int(3e3)
                   # model={"dim": 11, "conv_filters": [[64, [3, 3], 2], [128, [2, 2], 2], [512, [2, 2], 2]],
                   #        "fcnet_activation": "relu"}
@@ -54,3 +58,4 @@ if __name__ == '__main__':
                 evaluation=result['evaluation']
             )
             trainer.log_result(additional_logs)
+            trainer.save(trainer.logdir)

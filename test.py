@@ -73,12 +73,8 @@ def simulate_policy(env, agent, render):
 def make_env(**kwargs):
     info_example = {'timeout': 0}
     import qec
-    # env = MetaWorld(benchmark='ml1', demonstrations_flag=True, action_repeat=2)
-    # env = EasyReacher(demonstrations_flag=True)
-    # env = Pendulum(demonstrations_flag=False)
     env = gym.make(**kwargs)
     env =  GymEnvWrapper(EnvInfoWrapper(env, info_example))
-    # env = Monitor(env, './logs/Videos', force=True, write_upon_reset=True)
     return env
 
 
@@ -86,7 +82,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--path', help='path to params.pkl',
                         # default='/home/alex/important_logs/transformer_ml3/params.pkl')
-                        default='/home/alex/quantum_error_correction/logs/run_2/params.pkl')
+                        default='/home/alex/quantum_error_correction/logs/run_9/params.pkl')
     parser.add_argument('--env', default='HumanoidPrimitivePretraining-v0',
                         choices=['HumanoidPrimitivePretraining-v0', 'TrackEnv-v0'])
     parser.add_argument('--algo', default='ppo', choices=['sac', 'ppo'])
@@ -94,12 +90,14 @@ if __name__ == "__main__":
 
     snapshot = torch.load(args.path, map_location=torch.device('cpu'))
     agent_state_dict = snapshot['agent_state_dict']
-    env = make_env(id='SurfaceCode-v0')
+    env = make_env(id='SurfaceCode-v0', error_model='X', volume_depth=5)
     agent = AtariDqnAgent(model_kwargs=dict(channels=[64, 32, 32],
                                             kernel_sizes=[3, 2, 2],
                                             strides=[2, 1, 1],
-                                            paddings=[0, 1, 1],
-                                            fc_sizes=[512, ]))
+                                            paddings=[0, 0, 0],
+                                            fc_sizes=[512, ],
+                                            dueling=True),
+                          eps_eval=0.001)
     agent.initialize(env_spaces=env.spaces)
     agent.load_state_dict(agent_state_dict['model'])
     agent.eval_mode(1)
