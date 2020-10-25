@@ -1,5 +1,4 @@
 import os
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from rlpyt.envs.gym import GymEnvWrapper
 from logger_context import config_logger
@@ -15,13 +14,13 @@ from traj_info import EnvInfoTrajInfo
 from rlpyt.replays.non_sequence.uniform import AsyncUniformReplayBuffer
 from rlpyt.models.mlp import MlpModel
 from rlpyt.utils.logging.context import logger_context
-# from imitation_learning.environments.env_info_wrapper import EnvInfoWrapper
 from rlpyt.samplers.serial.sampler import SerialSampler
 from rlpyt.samplers.parallel.cpu.sampler import CpuSampler
 from rlpyt.runners.minibatch_rl import MinibatchRlEval
-# from simple_model import FfModel
 import qec
 import gym
+import torch
+from rlpyt_models import QECModel
 from qec.Environments import Surface_Code_Environment_Multi_Decoding_Cycles
 
 
@@ -29,18 +28,17 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
     # Change these inputs to match local machine and desired parallelism.
     affinity = make_affinity(
         run_slot=0,
-        n_cpu_core=4,  # Use 16 cores across all experiments.
-        cpu_per_run=4,
+        n_cpu_core=8,  # Use 16 cores across all experiments.
+        cpu_per_run=8,
         n_gpu=0,  # Use 8 gpus across all experiments.
         # sample_gpu_per_run=0,
         async_sample=False,
         alternating=False
-        # hyperthread_offset=24,  # If machine has 24 cores.
-        # n_socket=2,  # Presume CPU socket affinity to lower/upper half GPUs.
-        # gpu_per_run=2,  # How many GPUs to parallelize one run across.
-        # cpu_per_run=1,
     )
     env_kwargs = dict(id='SurfaceCode-v0', error_model='X', volume_depth=5)
+    state_dict = torch.load('./logs/run_12/params.pkl', map_location='cpu')
+    agent_state_dict = None #state_dict['agent_state_dict']
+    optim_state_dict = None #state_dict['optimizer_state_dict']
 
     # sampler = AsyncCpuSampler(
     sampler = CpuSampler(
@@ -53,8 +51,8 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         max_decorrelation_steps=100,
         eval_env_kwargs=dict(id=id, fixed_episode_length=500),
         eval_n_envs=1,
-        eval_max_steps=int(1e4),
-        eval_max_trajectories=20,
+        eval_max_steps=int(1e5),
+        eval_max_trajectories=5,
         TrajInfoCls=EnvInfoTrajInfo
     )
     algo = DQN(
@@ -66,7 +64,8 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         double_dqn=True,
         # target_update_tau=0.002,
         target_update_interval=5000,
-        ReplayBufferCls=AsyncUniformReplayBuffer
+        ReplayBufferCls=AsyncUniformReplayBuffer,
+        initial_optim_state_dict=optim_state_dict,
     )
     agent = AtariDqnAgent(model_kwargs=dict(channels=[64, 32, 32],
                                             kernel_sizes=[3, 2, 2],
@@ -74,10 +73,12 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
                                             paddings=[0, 0, 0],
                                             fc_sizes=[512, ],
                                             dueling=True),
+                          ModelCls=QECModel,
                           eps_init=1,
                           eps_final=0.001,
                           eps_itr_max=int(2e5),
-                          eps_eval=0)
+                          eps_eval=0,
+                          initial_model_state_dict=agent_state_dict)
     # agent = DqnAgent(ModelCls=FfModel)
     # runner = AsyncRlEval(
     runner = MinibatchRlEval(
@@ -107,7 +108,7 @@ def make_gym_env(**kwargs):
     else:
         fixed_episode_length = None
 
-    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5)
+    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='DP', volume_depth=5, p_meas=0.011, p_phys=0.011)
     # env = gym.make(**kwargs)
     # env = FixedLengthEnvWrapper(env, fixed_episode_length=fixed_episode_length)
     # return GymEnvWrapper(EnvInfoWrapper(env, info_example))

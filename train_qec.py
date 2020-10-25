@@ -1,12 +1,13 @@
 import ray
+from qec.Environments import Surface_Code_Environment_Multi_Decoding_Cycles
 import time
 
 s = time.time()
 ray.init()
 print(f'ray init took :{time.time() - s}')
 from ray import tune
-from ray.rllib.agents.dqn import DQNTrainer, ApexTrainer
-from models import ConvModel
+from ray.rllib.agents.dqn import DQNTrainer
+from qec.models import ConvModel
 import argparse
 import tensorflow as tf
 from ray.rllib.models import ModelCatalog
@@ -15,9 +16,10 @@ ModelCatalog.register_custom_model("QECConvModel", ConvModel)
 
 
 def make_env():
-    import qec
-    import gym
-    return gym.make('SurfaceCode-v0', channels_first=True, error_model='X', volume_depth=5)
+    # import gym
+    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5)
+    return env
+    # return gym.make('SurfaceCode-v0', channels_first=True, error_model='X', volume_depth=5)
 
 
 tune.register_env('SurfaceCode-v0', lambda config: make_env())
@@ -46,7 +48,7 @@ if __name__ == '__main__':
                   # model={"dim": 11, "conv_filters": [[64, [3, 3], 2], [128, [2, 2], 2], [512, [2, 2], 2]],
                   #        "fcnet_activation": "relu"}
                   )
-    # tune.run(DQNTrainer, config=config, local_dir=args.logdir)
+    # tune.run(DQNTrainer, config=config)#, local_dir=args.logdir)
     tf.compat.v1.enable_eager_execution()  # necessary for SurfaceCode env which uses a tf model
     trainer = DQNTrainer(config)
     for i in range(int(1e10)):

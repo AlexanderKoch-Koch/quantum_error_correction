@@ -1,12 +1,10 @@
 import ray
-import time
 import gym
-import qec
+
 ray.init()
 from ray import tune
-from ray.rllib.agents.dqn import DQNTrainer, ApexTrainer
-from models import ConvModel
-import argparse
+from ray.rllib.agents.dqn import DQNTrainer
+from qec.models import ConvModel
 from ray.rllib.models import ModelCatalog
 import tensorflow as tf
 tf.compat.v1.enable_eager_execution()  # necessary for SurfaceCode env which uses a tf model
@@ -15,7 +13,6 @@ ModelCatalog.register_custom_model("QECConvModel", ConvModel)
 
 
 def make_env():
-    import qec
     import gym
     return gym.make('SurfaceCode-v0', channels_first=True)
 

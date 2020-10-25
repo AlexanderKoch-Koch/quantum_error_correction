@@ -43,7 +43,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         # TrajInfoCls=AtariTrajInfo,
         env_kwargs=dict(id=id),
         batch_T=40,
-        batch_B=32,
+        batch_B=64,
         max_decorrelation_steps=100,
         eval_env_kwargs=dict(id=id, fixed_episode_length=500),
         eval_n_envs=1,
@@ -51,35 +51,9 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         eval_max_trajectories=5,
         TrajInfoCls=EnvInfoTrajInfo
     )
-    # algo = DQN(
-    #     replay_ratio=8,
-    #     learning_rate=5e-5,
-    #     min_steps_learn=1e4,
-    #     replay_size=int(5e4),
-    #     batch_size=32,
-    #     double_dqn=True,
-    #     # target_update_tau=0.002,
-    #     target_update_interval=5000,
-    #     ReplayBufferCls=AsyncUniformReplayBuffer,
-    #     initial_optim_state_dict=optim_state_dict,
-    # )
     # algo = AsyncVMPO(batch_B=32, batch_T=40)
-    algo = VMPO(pop_art_reward_normalization=False, discrete_actions=True)
-    # agent = AtariDqnAgent(model_kwargs=dict(channels=[64, 32, 32],
-    #                                         kernel_sizes=[3, 2, 2],
-    #                                         strides=[2, 1, 1],
-    #                                         paddings=[0, 0, 0],
-    #                                         fc_sizes=[512, ],
-    #                                         dueling=True),
-    #                       ModelCls=QECModel,
-    #                       eps_init=1,
-    #                       eps_final=0.001,
-    #                       eps_itr_max=int(2e5),
-    #                       eps_eval=0,
-    #                       initial_model_state_dict=agent_state_dict)
-
-    agent = QECVmpoAgent(ModelCls=VmpoQECModel)
-    # agent = DqnAgent(ModelCls=FfModel)
+    algo = VMPO(pop_art_reward_normalization=True, discrete_actions=True, T_target_steps=40)
+    agent = QECVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False))
     # runner = AsyncRlEval(
     runner = MinibatchRlEval(
         algo=algo,
@@ -108,7 +82,7 @@ def make_gym_env(**kwargs):
     else:
         fixed_episode_length = None
 
-    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5)
+    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='DP', volume_depth=5, p_meas=0.011, p_phys=0.011)
     # env = gym.make(**kwargs)
     # env = FixedLengthEnvWrapper(env, fixed_episode_length=fixed_episode_length)
     # return GymEnvWrapper(EnvInfoWrapper(env, info_example))
