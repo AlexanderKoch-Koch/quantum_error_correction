@@ -114,8 +114,8 @@ class VmpoQECModel(torch.nn.Module):
         # Infer (presence of) leading dimensions: [T,B], [B], or [].
         lead_dim, T, B, img_shape = infer_leading_dims(img, 3)
 
-        conv_out = self.conv(img.view(T * B, *img_shape))  # Fold if T dimension.
-        features = conv_out.view(T * B, -1)
+        conv_out = self.conv(img.reshape(T * B, *img_shape))  # Fold if T dimension.
+        features = conv_out.reshape(T * B, -1)
         pi = self.pi_head(features)
         pi = torch.softmax(pi, dim=-1)
         value = self.value_head(features).squeeze(-1)

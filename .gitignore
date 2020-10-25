@@ -1,5 +1,7 @@
 .idea
 __pycache__
 debug_logs
+debug_log_dir
 logs
 *.egg_info
+*.egg-info

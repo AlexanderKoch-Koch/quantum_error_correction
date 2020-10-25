@@ -16,7 +16,6 @@ from rlpyt_models import QECModel, VmpoQECModel
 from qec.Environments import Surface_Code_Environment_Multi_Decoding_Cycles
 from imitation_learning.vmpo.async_vmpo import AsyncVMPO
 from imitation_learning.vmpo.v_mpo import VMPO
-from imitation_learning.vmpo.multivariate_gaussian_agent import MujocoVmpoAgent
 from qec_vmpo_agent import QECVmpoAgent
 
 
@@ -24,26 +23,26 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
     # Change these inputs to match local machine and desired parallelism.
     affinity = make_affinity(
         run_slot=0,
-        n_cpu_core=8,  # Use 16 cores across all experiments.
-        cpu_per_run=8,
-        n_gpu=0,  # Use 8 gpus across all experiments.
+        n_cpu_core=24,  # Use 16 cores across all experiments.
+        cpu_per_run=24,
+        n_gpu=1,  # Use 8 gpus across all experiments.
         # sample_gpu_per_run=0,
-        async_sample=False,
+        async_sample=True,
         alternating=False
     )
-    env_kwargs = dict(id='SurfaceCode-v0', error_model='X', volume_depth=5)
-    state_dict = torch.load('./logs/run_12/params.pkl', map_location='cpu')
-    agent_state_dict = None #state_dict['agent_state_dict']
-    optim_state_dict = None #state_dict['optimizer_state_dict']
+    # env_kwargs = dict(id='SurfaceCode-v0', error_model='X', volume_depth=5)
+    # state_dict = torch.load('./logs/run_12/params.pkl', map_location='cpu')
+    # agent_state_dict = None #state_dict['agent_state_dict']
+    # optim_state_dict = None #state_dict['optimizer_state_dict']
 
-    # sampler = AsyncCpuSampler(
-    sampler = CpuSampler(
+    sampler = AsyncCpuSampler(
+        # sampler = CpuSampler(
         # sampler=SerialSampler(
         EnvCls=make_gym_env,
         # TrajInfoCls=AtariTrajInfo,
         env_kwargs=dict(id=id),
         batch_T=40,
-        batch_B=64,
+        batch_B=23 * 8,
         max_decorrelation_steps=100,
         eval_env_kwargs=dict(id=id, fixed_episode_length=500),
         eval_n_envs=1,
@@ -51,16 +50,16 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         eval_max_trajectories=5,
         TrajInfoCls=EnvInfoTrajInfo
     )
-    # algo = AsyncVMPO(batch_B=32, batch_T=40)
-    algo = VMPO(pop_art_reward_normalization=True, discrete_actions=True, T_target_steps=40)
+    algo = AsyncVMPO(batch_B=32, batch_T=40, discrete_actions=True, T_target_steps=40)
+    # algo = VMPO(pop_art_reward_normalization=True, discrete_actions=True, T_target_steps=40)
     agent = QECVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False))
-    # runner = AsyncRlEval(
-    runner = MinibatchRlEval(
+    runner = AsyncRlEval(
+        # runner = MinibatchRlEval(
         algo=algo,
         agent=agent,
         sampler=sampler,
         n_steps=1e8,
-        log_interval_steps=3e4,
+        log_interval_steps=1e6,
         affinity=affinity,
     )
     config = dict(game=id)
@@ -97,6 +96,7 @@ if __name__ == "__main__":
     parser.add_argument('--log_dir', help='log dir', type=str, default='./logs')
     args = parser.parse_args()
     build_and_train(
-        name=args.name,
+        name=args.name
+        ,
         log_dir=args.log_dir
     )
