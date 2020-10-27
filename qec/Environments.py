@@ -225,7 +225,7 @@ class Surface_Code_Environment_Multi_Decoding_Cycles(gym.Env):
                     self.completed_actions[k * self.d ** 2:(k + 1) * self.d ** 2])
 
         obs = self.board_state if self.channels_first else self.board_state.transpose((1, 2, 0))
-        return obs, reward, self.done, {}
+        return obs, reward, self.done, {'lifetime': self.lifetime}
 
     def initialize_state(self):
         """

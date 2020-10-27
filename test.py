@@ -12,6 +12,8 @@ from rlpyt.utils.launching.affinity import make_affinity
 from rlpyt.algos.dqn.dqn import DQN
 from qec_vmpo_agent import QECVmpoAgent
 from rlpyt_models import VmpoQECModel
+from imitation_learning.vmpo.categorical_vmpo_agent import CategoricalVmpoAgent
+from imitation_learning.vmpo.categorical_models import CategorialFfModel
 from rlpyt.agents.dqn.atari.atari_dqn_agent import AtariDqnAgent
 
 def simulate_policy(env, agent, render):
@@ -20,6 +22,7 @@ def simulate_policy(env, agent, render):
     loop_time = 0.01
     returns = []
     mses = []
+    lifetimes = []
     while True:
         observation[0] = env.reset()
         action = buffer_from_example(env.action_space.null_value(), 1)
@@ -60,8 +63,10 @@ def simulate_policy(env, agent, render):
 
         # print('episode success: ' + str(info.episode_success))
         returns.append(reward_sum)
+        lifetimes.append(info.lifetime)
         print('avg return: ' + str(sum(returns) / len(returns)) + ' return: ' + str(reward_sum) + '  num_steps: ' + str(
             step))
+        print(f'average lifetime: {sum(lifetimes)/len(lifetimes)} lifetime: {info.lifetime}')
         # print(f'forward reward: {forward_reward}')
         # print(' avg mse: ' + str(sum(mses) / len(mses)))
 
@@ -69,7 +74,7 @@ def simulate_policy(env, agent, render):
 def make_env(**kwargs):
     info_example = {'timeout': 0}
     import qec
-    # env = gym.make(**kwargs)
+    # env = gym.make('CartPole-v0')
     env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5, p_meas=0.001, p_phys=0.001)
     env =  GymEnvWrapper(EnvInfoWrapper(env, info_example))
     return env
@@ -79,7 +84,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--path', help='path to params.pkl',
                         # default='/home/alex/important_logs/transformer_ml3/params.pkl')
-                        default='/home/alex/quantum_error_correction/logs/run_76/params.pkl')
+                        default='/home/alex/quantum_error_correction/logs/run_56/params.pkl')
     parser.add_argument('--env', default='HumanoidPrimitivePretraining-v0',
                         choices=['HumanoidPrimitivePretraining-v0', 'TrackEnv-v0'])
     parser.add_argument('--algo', default='ppo', choices=['sac', 'ppo'])
@@ -87,7 +92,7 @@ if __name__ == "__main__":
 
     snapshot = torch.load(args.path, map_location=torch.device('cpu'))
     agent_state_dict = snapshot['agent_state_dict']
-    env = make_env(id='SurfaceCode-v0', error_model='X', volume_depth=5)
+    env = make_env()
     # agent = AtariDqnAgent(model_kwargs=dict(channels=[64, 32, 32],
     #                                         kernel_sizes=[3, 2, 2],
     #                                         strides=[2, 1, 1],
@@ -95,7 +100,8 @@ if __name__ == "__main__":
     #                                         fc_sizes=[512, ],
     #                                         dueling=True),
     #                       eps_eval=0.001)
-    agent = QECVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False))
+    # agent = CategoricalVmpoAgent(ModelCls=CategorialFfModel, model_kwargs=dict(linear_value_output=False))
+    agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False))
     agent.initialize(env_spaces=env.spaces)
     agent.load_state_dict(agent_state_dict)
     agent.eval_mode(1)
