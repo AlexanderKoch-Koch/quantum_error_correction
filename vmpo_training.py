@@ -21,7 +21,7 @@ from imitation_learning.vmpo.categorical_models import CategorialFfModel
 from qec_vmpo_agent import QECVmpoAgent
 
 
-def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mode=False):
+def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mode=True):
     affinity = make_affinity(
         run_slot=0,
         n_cpu_core=24,  # Use 16 cores across all experiments.
@@ -33,11 +33,11 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
     if async_mode:
         SamplerCls = AsyncCpuSampler
         RunnerCls = AsyncRlEval
-        algo = AsyncVMPO(batch_B=64, batch_T=40, discrete_actions=True, T_target_steps=40, epochs=4)
+        algo = AsyncVMPO(batch_B=32, batch_T=40, discrete_actions=True, T_target_steps=10, epochs=4, initial_alpha=1)
     else:
         SamplerCls = SerialSampler
         RunnerCls = MinibatchRlEval
-        algo = VMPO(discrete_actions=True, epochs=4, minibatches=1, T_target_steps=40)
+        algo = VMPO(discrete_actions=True, epochs=4, minibatches=16, T_target_steps=10)
     # env_kwargs = dict(id='SurfaceCode-v0', error_model='X', volume_depth=5)
     # state_dict = torch.load('./logs/run_12/params.pkl', map_location='cpu')
     # agent_state_dict = None #state_dict['agent_state_dict']
@@ -48,15 +48,15 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         # TrajInfoCls=AtariTrajInfo,
         env_kwargs=dict(id=id),
         batch_T=40,
-        batch_B=64,
+        batch_B=23 * 64,
         max_decorrelation_steps=100,
-        eval_env_kwargs=dict(id=id, fixed_episode_length=500),
+        eval_env_kwargs=dict(id=id, fixed_episode_length=200),
         eval_n_envs=1,
         eval_max_steps=int(1e5),
         eval_max_trajectories=10,
         TrajInfoCls=EnvInfoTrajInfo
     )
-    agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False))
+    agent = CategoricalVmpoAgent(ModelCls=CategorialFfModel, model_kwargs=dict(linear_value_output=False))
     runner = RunnerCls(
         algo=algo,
         agent=agent,
@@ -83,8 +83,8 @@ def make_gym_env(**kwargs):
     else:
         fixed_episode_length = None
 
-    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5, p_meas=0.001, p_phys=0.001)
-    # env = gym.make('CartPole-v0')
+    # env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5, p_meas=0.001, p_phys=0.001)
+    env = gym.make('CartPole-v0')
     # env = FixedLengthEnvWrapper(env, fixed_episode_length=fixed_episode_length)
     # return GymEnvWrapper(EnvInfoWrapper(env, info_example))
     return GymEnvWrapper(env)
