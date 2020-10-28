@@ -28,20 +28,21 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
     # Change these inputs to match local machine and desired parallelism.
     affinity = make_affinity(
         run_slot=0,
-        n_cpu_core=24,  # Use 16 cores across all experiments.
-        cpu_per_run=24,
+        n_cpu_core=8,  # Use 16 cores across all experiments.
+        cpu_per_run=8,
         n_gpu=1,  # Use 8 gpus across all experiments.
         # sample_gpu_per_run=0,
-        async_sample=False,
-        alternating=False
+        async_sample=True,
+        alternating=False,
+        set_affinity=True
     )
     # env_kwargs = dict(id='SurfaceCode-v0', error_model='X', volume_depth=5)
     # state_dict = torch.load('./logs/run_12/params.pkl', map_location='cpu')
     agent_state_dict = None #state_dict['agent_state_dict']
     optim_state_dict = None #state_dict['optimizer_state_dict']
 
-    # sampler = AsyncCpuSampler(
-    sampler = CpuSampler(
+    sampler = AsyncCpuSampler(
+        # sampler = CpuSampler(
         # sampler=SerialSampler(
         EnvCls=make_gym_env,
         # TrajInfoCls=AtariTrajInfo,
@@ -80,8 +81,8 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
                           eps_eval=0,
                           initial_model_state_dict=agent_state_dict)
     # agent = DqnAgent(ModelCls=FfModel)
-    # runner = AsyncRlEval(
-    runner = MinibatchRlEval(
+    runner = AsyncRlEval(
+        # runner = MinibatchRlEval(
         algo=algo,
         agent=agent,
         sampler=sampler,
