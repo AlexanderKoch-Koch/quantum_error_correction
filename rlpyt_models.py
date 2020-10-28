@@ -81,7 +81,7 @@ class VmpoQECModel(torch.nn.Module):
 
     def __init__(
             self,
-            image_shape,
+            observation_shape,
             action_size,
             fc_sizes=512,
             dueling=False,
@@ -96,7 +96,7 @@ class VmpoQECModel(torch.nn.Module):
         stored within this method."""
         super().__init__()
         self.dueling = dueling
-        c, h, w = image_shape
+        c, h, w = observation_shape
         self.conv = Conv2dModel(
             in_channels=c,
             channels=channels or [32, 64, 64],

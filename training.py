@@ -28,15 +28,15 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
     # Change these inputs to match local machine and desired parallelism.
     affinity = make_affinity(
         run_slot=0,
-        n_cpu_core=8,  # Use 16 cores across all experiments.
-        cpu_per_run=8,
-        n_gpu=0,  # Use 8 gpus across all experiments.
+        n_cpu_core=24,  # Use 16 cores across all experiments.
+        cpu_per_run=24,
+        n_gpu=1,  # Use 8 gpus across all experiments.
         # sample_gpu_per_run=0,
         async_sample=False,
         alternating=False
     )
-    env_kwargs = dict(id='SurfaceCode-v0', error_model='X', volume_depth=5)
-    state_dict = torch.load('./logs/run_12/params.pkl', map_location='cpu')
+    # env_kwargs = dict(id='SurfaceCode-v0', error_model='X', volume_depth=5)
+    # state_dict = torch.load('./logs/run_12/params.pkl', map_location='cpu')
     agent_state_dict = None #state_dict['agent_state_dict']
     optim_state_dict = None #state_dict['optimizer_state_dict']
 
@@ -108,7 +108,7 @@ def make_gym_env(**kwargs):
     else:
         fixed_episode_length = None
 
-    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='DP', volume_depth=5, p_meas=0.011, p_phys=0.011)
+    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5, p_meas=0.011, p_phys=0.011)
     # env = gym.make(**kwargs)
     # env = FixedLengthEnvWrapper(env, fixed_episode_length=fixed_episode_length)
     # return GymEnvWrapper(EnvInfoWrapper(env, info_example))
