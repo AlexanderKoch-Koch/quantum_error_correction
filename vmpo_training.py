@@ -35,7 +35,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
     if async_mode:
         SamplerCls = AsyncCpuSampler
         RunnerCls = AsyncRlEval
-        algo = AsyncVMPO(batch_B=32, batch_T=40, discrete_actions=True, T_target_steps=10, epochs=4, initial_alpha=1)
+        algo = AsyncVMPO(batch_B=32, batch_T=40, discrete_actions=True, T_target_steps=40, epochs=4, initial_alpha=1)
         sampler_kwargs=dict(CollectorCls=QecDbCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
     else:
         SamplerCls = SerialSampler
@@ -57,7 +57,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         eval_env_kwargs=dict(id=id, fixed_episode_length=1000),
         eval_n_envs=1,
         eval_max_steps=int(1e5),
-        eval_max_trajectories=10,
+        eval_max_trajectories=20,
         TrajInfoCls=EnvInfoTrajInfo,
         **sampler_kwargs
     )
@@ -67,7 +67,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         agent=agent,
         sampler=sampler,
         n_steps=1e8,
-        log_interval_steps=2e5,
+        log_interval_steps=1e6,
         affinity=affinity,
     )
     config = dict(game=id)
@@ -89,7 +89,7 @@ def make_gym_env(**kwargs):
         fixed_episode_length = None
 
     # env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5, p_meas=0.001, p_phys=0.001)
-    env = OptimizedSurfaceCodeEnvironment(error_model='X', volume_depth=5, p_meas=0.001, p_phys=0.001)
+    env = OptimizedSurfaceCodeEnvironment(error_model='X', volume_depth=5, p_meas=0.011, p_phys=0.011)
     # env = gym.make('CartPole-v0')
     # env = FixedLengthEnvWrapper(env, fixed_episode_length=fixed_episode_length)
     # return GymEnvWrapper(EnvInfoWrapper(env, info_example))
