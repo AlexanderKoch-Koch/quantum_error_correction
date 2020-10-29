@@ -98,7 +98,8 @@ class QecCpuEvalCollector(BaseEvalCollector):
         static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
         self.static_decoder = load_model(static_decoder_path, compile=True)
 
-    def collect_evaluation(self, itr):
+    def collect_evaluation(self, itr, max_episodes=1):
+        assert len(self.envs) == 1, 'qec eval collector needs max 1 env. Otherwise evaluation will be biased'
         traj_infos = [self.TrajInfoCls() for _ in range(len(self.envs))]
         observations = list()
         for env in self.envs:
@@ -112,6 +113,7 @@ class QecCpuEvalCollector(BaseEvalCollector):
         obs_pyt, act_pyt, rew_pyt = torchify_buffer((observation, action, reward))
         self.agent.reset()
         self.agent.eval_mode(itr)
+        num_completed_episodes = 0
         for t in range(self.max_T):
             act_pyt, agent_info = self.agent.step(obs_pyt, act_pyt, rew_pyt)
             action = numpify_buffer(act_pyt)
@@ -144,6 +146,11 @@ class QecCpuEvalCollector(BaseEvalCollector):
                     action[b] = 0  # Next prev_action.
                     reward[b] = 0
                     self.agent.reset_one(idx=b)
+                    num_completed_episodes += 1
+            if num_completed_episodes >= max_episodes:
+                print('reached max episodes')
+                break
             if self.sync.stop_eval.value:
+                print(f'sync stop')
                 break
         self.traj_infos_queue.put(None)  # End sentinel.

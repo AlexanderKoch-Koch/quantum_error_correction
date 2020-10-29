@@ -21,6 +21,7 @@ from imitation_learning.vmpo.categorical_models import CategorialFfModel
 from qec_vmpo_agent import QECVmpoAgent
 from qec.qec_collectors import QecCpuEvalCollector, QecDbCpuResetCollector
 from qec.optimized_environment import OptimizedSurfaceCodeEnvironment
+from qec.fixed_length_env_wrapper import FixedLengthEnvWrapper
 
 
 def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mode=True):
@@ -42,26 +43,26 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         RunnerCls = MinibatchRlEval
         algo = VMPO(discrete_actions=True, epochs=4, minibatches=16, T_target_steps=10)
         sampler_kwargs = dict()
-    # env_kwargs = dict(id='SurfaceCode-v0', error_model='X', volume_depth=5)
-    # state_dict = torch.load('./logs/run_12/params.pkl', map_location='cpu')
-    # agent_state_dict = None #state_dict['agent_state_dict']
-    # optim_state_dict = None #state_dict['optimizer_state_dict']
+
+    state_dict = torch.load('./logs/run_74/params.pkl', map_location='cpu')
+    agent_state_dict = state_dict['agent_state_dict']
+    optim_state_dict = None #state_dict['optimizer_state_dict']
 
     sampler = SamplerCls(
         EnvCls=make_gym_env,
         # TrajInfoCls=AtariTrajInfo,
         env_kwargs=dict(id=id),
         batch_T=40,
-        batch_B=23 * 64, #23 * 64,
+        batch_B=23 * 64,
         max_decorrelation_steps=100,
         eval_env_kwargs=dict(id=id, fixed_episode_length=1000),
         eval_n_envs=1,
         eval_max_steps=int(1e5),
-        eval_max_trajectories=20,
+        eval_max_trajectories=23,
         TrajInfoCls=EnvInfoTrajInfo,
         **sampler_kwargs
     )
-    agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False))
+    agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     runner = RunnerCls(
         algo=algo,
         agent=agent,
@@ -78,7 +79,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
 def make_gym_env(**kwargs):
     import qec
     info_example = {'timeout': 0}
-    # print('making env: ' + str(kwargs))
+    print('making env: ' + str(kwargs))
     static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
     # from keras.models import load_model
     # static_decoder = load_model(static_decoder_path)
