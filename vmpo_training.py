@@ -12,7 +12,7 @@ from rlpyt.samplers.serial.sampler import SerialSampler
 from rlpyt.samplers.parallel.cpu.sampler import CpuSampler
 from rlpyt.runners.minibatch_rl import MinibatchRlEval
 import torch
-from rlpyt_models import QECModel, VmpoQECModel
+from rlpyt_models import QECModel, VmpoQECModel, RecurrentVmpoQECModel
 from qec.Environments import Surface_Code_Environment_Multi_Decoding_Cycles
 from imitation_learning.vmpo.async_vmpo import AsyncVMPO
 from imitation_learning.vmpo.v_mpo import VMPO
@@ -21,6 +21,7 @@ from imitation_learning.vmpo.categorical_models import CategorialFfModel
 from qec_vmpo_agent import QECVmpoAgent
 from qec.qec_collectors import QecCpuEvalCollector, QecDbCpuResetCollector
 from qec.optimized_environment import OptimizedSurfaceCodeEnvironment
+from qec.general_environment import GeneralSurfaceCodeEnv
 from qec.fixed_length_env_wrapper import FixedLengthEnvWrapper
 
 
@@ -44,8 +45,8 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         algo = VMPO(discrete_actions=True, epochs=4, minibatches=16, T_target_steps=10)
         sampler_kwargs = dict()
 
-    state_dict = torch.load('./logs/run_74/params.pkl', map_location='cpu')
-    agent_state_dict = state_dict['agent_state_dict']
+    # state_dict = torch.load('./logs/run_74/params.pkl', map_location='cpu')
+    agent_state_dict = None#state_dict['agent_state_dict']
     optim_state_dict = None #state_dict['optimizer_state_dict']
 
     sampler = SamplerCls(
@@ -53,7 +54,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         # TrajInfoCls=AtariTrajInfo,
         env_kwargs=dict(id=id),
         batch_T=40,
-        batch_B=23 * 64,
+        batch_B=23 * 1,
         max_decorrelation_steps=100,
         eval_env_kwargs=dict(id=id, fixed_episode_length=1000),
         eval_n_envs=1,
@@ -62,7 +63,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         TrajInfoCls=EnvInfoTrajInfo,
         **sampler_kwargs
     )
-    agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     runner = RunnerCls(
         algo=algo,
         agent=agent,
@@ -90,7 +91,8 @@ def make_gym_env(**kwargs):
         fixed_episode_length = None
 
     # env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5, p_meas=0.001, p_phys=0.001)
-    env = OptimizedSurfaceCodeEnvironment(error_model='X', volume_depth=5, p_meas=0.011, p_phys=0.011)
+    # env = OptimizedSurfaceCodeEnvironment(error_model='X', volume_depth=5, p_meas=0.011, p_phys=0.011)
+    env = GeneralSurfaceCodeEnv(error_model='X', p_meas=0.011, p_phys=0.011)
     # env = gym.make('CartPole-v0')
     # env = FixedLengthEnvWrapper(env, fixed_episode_length=fixed_episode_length)
     # return GymEnvWrapper(EnvInfoWrapper(env, info_example))

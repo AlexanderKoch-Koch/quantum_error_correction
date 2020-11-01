@@ -5,6 +5,7 @@ from rlpyt.utils.tensor import infer_leading_dims, restore_leading_dims
 from rlpyt.models.conv2d import Conv2dModel
 from rlpyt.models.mlp import MlpModel
 from rlpyt.models.dqn.dueling import DuelingHeadModel
+from rlpyt.models.pg.atari_lstm_model import RnnState
 
 
 class QECModel(torch.nn.Module):
@@ -40,8 +41,9 @@ class QECModel(torch.nn.Module):
         )
         conv_out_size = self.conv.conv_out_size(h, w)
         self.mlp = MlpModel(input_size=np.prod(image_shape),
-                            hidden_sizes=[256,256],
+                            hidden_sizes=[512,],
                             output_size=None)
+        self.dropout = torch.nn.Dropout(0.2)
         # conv_out_size = 256
         if dueling:
             self.head = DuelingHeadModel(conv_out_size, fc_sizes, output_size)
@@ -66,7 +68,7 @@ class QECModel(torch.nn.Module):
         # features = self.mlp(img.reshape(T * B, -1))
 
         conv_out = self.conv(img.view(T * B, *img_shape))  # Fold if T dimension.
-        q = self.head(conv_out.view(T * B, -1))
+        q = self.head(self.dropout(conv_out.view(T * B, -1)))
         # q = self.head(features)
 
         # Restore leading dimensions: [T,B], [B], or [], as input.
@@ -122,3 +124,60 @@ class VmpoQECModel(torch.nn.Module):
         # Restore leading dimensions: [T,B], [B], or [], as input.
         pi, value = restore_leading_dims((pi, value), lead_dim, T, B)
         return pi, value, torch.zeros(1, B, 1)
+
+class RecurrentVmpoQECModel(torch.nn.Module):
+    """Standard convolutional network for DQN.  2-D convolution for multiple
+    video frames per observation, feeding an MLP for Q-value outputs for
+    the action set.
+    """
+
+    def __init__(
+            self,
+            observation_shape,
+            action_size,
+            fc_sizes=512,
+            lstm_size=64,
+            use_maxpool=False,
+            channels=None,  # None uses default.
+            kernel_sizes=None,
+            strides=None,
+            paddings=None,
+            linear_value_output=True
+    ):
+        """Instantiates the neural network according to arguments; network defaults
+        stored within this method."""
+        super().__init__()
+        c, h, w = observation_shape
+        self.conv = Conv2dModel(
+            in_channels=c,
+            channels=channels or [32, 64, 64],
+            kernel_sizes=kernel_sizes or [3, 2, 2],
+            strides=strides or [2, 1, 1],
+            paddings=paddings or [0, 0, 0],
+            use_maxpool=use_maxpool,
+        )
+        conv_out_size = self.conv.conv_out_size(h, w)
+        self.lstm = torch.nn.LSTM(conv_out_size, lstm_size)
+        self.pi_head = MlpModel(conv_out_size + lstm_size, [256,], action_size)
+        self.value_head = MlpModel(conv_out_size + lstm_size, [256,], 1 if linear_value_output else None)
+
+    def forward(self, observation, prev_action, prev_reward, init_rnn_state):
+        img = observation.type(torch.float)  # Expect torch.uint8 inputs
+        # Infer (presence of) leading dimensions: [T,B], [B], or [].
+        lead_dim, T, B, img_shape = infer_leading_dims(img, 3)
+
+        conv_out = self.conv(img.reshape(T * B, *img_shape))  # Fold if T dimension.
+        features = conv_out.reshape(T * B, -1)
+
+        init_rnn_state = None if init_rnn_state is None else tuple(init_rnn_state)
+        lstm_out, (hidden_state, cell_state) = self.lstm(features.reshape(T, B, -1), init_rnn_state)
+        head_input = torch.cat((features, lstm_out.reshape(T * B, -1)), dim=-1)
+
+        pi = self.pi_head(head_input)
+        pi = torch.softmax(pi, dim=-1)
+        value = self.value_head(head_input).squeeze(-1)
+
+        # Restore leading dimensions: [T,B], [B], or [], as input.
+        pi, value = restore_leading_dims((pi, value), lead_dim, T, B)
+        state = RnnState(h=hidden_state, c=cell_state)
+        return pi, value, state
