@@ -25,7 +25,7 @@ from qec.general_environment import GeneralSurfaceCodeEnv
 from qec.fixed_length_env_wrapper import FixedLengthEnvWrapper
 
 
-def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mode=True):
+def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mode=True, restore_path=None):
     affinity = make_affinity(
         run_slot=0,
         n_cpu_core=24,  # Use 16 cores across all experiments.
@@ -34,43 +34,47 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         async_sample=async_mode,
         alternating=False
     )
+    agent_state_dict = optim_state_dict = None
+    if restore_path is not None:
+        state_dict = torch.load(restore_path, map_location='cpu')
+        agent_state_dict = state_dict['agent_state_dict']
+        optim_state_dict = state_dict['optimizer_state_dict']
     if async_mode:
         SamplerCls = AsyncCpuSampler
         RunnerCls = AsyncRlEval
-        algo = AsyncVMPO(batch_B=32, batch_T=40, discrete_actions=True, T_target_steps=40, epochs=4, initial_alpha=1)
+        algo = AsyncVMPO(batch_B=64, batch_T=40, discrete_actions=True, T_target_steps=40, epochs=4, initial_optim_state_dict=optim_state_dict)
         sampler_kwargs=dict(CollectorCls=QecDbCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
     else:
         SamplerCls = SerialSampler
         RunnerCls = MinibatchRlEval
-        algo = VMPO(discrete_actions=True, epochs=4, minibatches=16, T_target_steps=10)
+        algo = VMPO(discrete_actions=True, epochs=4, minibatches=16, T_target_steps=10, initial_optim_state_dict=optim_state_dict)
         sampler_kwargs = dict()
 
-    # state_dict = torch.load('./logs/run_74/params.pkl', map_location='cpu')
-    agent_state_dict = None#state_dict['agent_state_dict']
-    optim_state_dict = None #state_dict['optimizer_state_dict']
 
     sampler = SamplerCls(
         EnvCls=make_gym_env,
         # TrajInfoCls=AtariTrajInfo,
         env_kwargs=dict(id=id),
         batch_T=40,
-        batch_B=23 * 1,
+        batch_B=23 * 32,
         max_decorrelation_steps=100,
         eval_env_kwargs=dict(id=id, fixed_episode_length=1000),
-        eval_n_envs=1,
+        eval_n_envs=23,
         eval_max_steps=int(1e5),
-        eval_max_trajectories=23,
+        eval_max_trajectories=23 * 1,
         TrajInfoCls=EnvInfoTrajInfo,
         **sampler_kwargs
     )
-    agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    # agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     runner = RunnerCls(
         algo=algo,
         agent=agent,
         sampler=sampler,
-        n_steps=1e8,
+        n_steps=1e10,
         log_interval_steps=1e6,
         affinity=affinity,
+
     )
     config = dict(game=id)
     config_logger(log_dir, name=name, snapshot_mode='last', log_params=config)
@@ -91,8 +95,8 @@ def make_gym_env(**kwargs):
         fixed_episode_length = None
 
     # env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5, p_meas=0.001, p_phys=0.001)
-    # env = OptimizedSurfaceCodeEnvironment(error_model='X', volume_depth=5, p_meas=0.011, p_phys=0.011)
-    env = GeneralSurfaceCodeEnv(error_model='X', p_meas=0.011, p_phys=0.011)
+    env = OptimizedSurfaceCodeEnvironment(error_model='DP', volume_depth=5, p_meas=0.011, p_phys=0.011)
+    # env = GeneralSurfaceCodeEnv(error_model='DP', p_meas=0.011, p_phys=0.011)
     # env = gym.make('CartPole-v0')
     # env = FixedLengthEnvWrapper(env, fixed_episode_length=fixed_episode_length)
     # return GymEnvWrapper(EnvInfoWrapper(env, info_example))
@@ -105,9 +109,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--name', help='name of the run', type=str, default='run')
     parser.add_argument('--log_dir', help='log dir', type=str, default='./logs')
+    parser.add_argument('--restore', help='path to old .pkl file', type=str, default=None)
     args = parser.parse_args()
     build_and_train(
-        name=args.name
-        ,
+        name=args.name,
+        restore_path=args.restore,
         log_dir=args.log_dir
     )

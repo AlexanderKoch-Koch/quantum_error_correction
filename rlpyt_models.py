@@ -68,7 +68,8 @@ class QECModel(torch.nn.Module):
         # features = self.mlp(img.reshape(T * B, -1))
 
         conv_out = self.conv(img.view(T * B, *img_shape))  # Fold if T dimension.
-        q = self.head(self.dropout(conv_out.view(T * B, -1)))
+        # q = self.head(self.dropout(conv_out.view(T * B, -1)))
+        q = self.head(conv_out.view(T * B, -1))
         # q = self.head(features)
 
         # Restore leading dimensions: [T,B], [B], or [], as input.

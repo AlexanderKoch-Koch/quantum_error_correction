@@ -409,7 +409,11 @@ class Surface_Code_Environment_Multi_Decoding_Cycles(gym.Env):
 
     def load_static_decoder(self):
         from keras.models import load_model
-        static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
+        if self.error_model == 'X':
+            static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
+        else:
+            static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_DP_p5'
+
         self.static_decoder = load_model(static_decoder_path, compile=True)
 
 

@@ -28,18 +28,19 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
     # Change these inputs to match local machine and desired parallelism.
     affinity = make_affinity(
         run_slot=0,
-        n_cpu_core=8,  # Use 16 cores across all experiments.
-        cpu_per_run=8,
+        n_cpu_core=24,  # Use 16 cores across all experiments.
+        cpu_per_run=5,
         n_gpu=1,  # Use 8 gpus across all experiments.
         # sample_gpu_per_run=0,
         async_sample=True,
         alternating=False,
         set_affinity=True
     )
+    affinity['optimizer'][0]['cuda_idx'] = 1
     # env_kwargs = dict(id='SurfaceCode-v0', error_model='X', volume_depth=5)
-    # state_dict = torch.load('./logs/run_12/params.pkl', map_location='cpu')
-    agent_state_dict = None #state_dict['agent_state_dict']
-    optim_state_dict = None #state_dict['optimizer_state_dict']
+    state_dict = torch.load('./logs/run_29/params.pkl', map_location='cpu')
+    agent_state_dict = state_dict['agent_state_dict']['model']
+    optim_state_dict = state_dict['optimizer_state_dict']
 
     sampler = AsyncCpuSampler(
         # sampler = CpuSampler(
@@ -48,9 +49,9 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         # TrajInfoCls=AtariTrajInfo,
         env_kwargs=dict(id=id),
         batch_T=10,
-        batch_B=128,
+        batch_B=64,
         max_decorrelation_steps=100,
-        eval_env_kwargs=dict(id=id, fixed_episode_length=500),
+        eval_env_kwargs=dict(id=id, fixed_episode_length=300),
         eval_n_envs=1,
         eval_max_steps=int(1e5),
         eval_max_trajectories=5,
@@ -58,7 +59,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
     )
     algo = DQN(
         replay_ratio=8,
-        learning_rate=5e-5,
+        learning_rate=1e-5,
         min_steps_learn=1e4,
         replay_size=int(5e4),
         batch_size=32,
@@ -67,6 +68,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         target_update_interval=5000,
         ReplayBufferCls=AsyncUniformReplayBuffer,
         initial_optim_state_dict=optim_state_dict,
+        eps_steps=2e6,
     )
     agent = AtariDqnAgent(model_kwargs=dict(channels=[64, 32, 32],
                                             kernel_sizes=[3, 2, 2],
@@ -87,7 +89,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         agent=agent,
         sampler=sampler,
         n_steps=1e8,
-        log_interval_steps=3e4,
+        log_interval_steps=2e5,
         affinity=affinity,
     )
     config = dict(game=id)
@@ -109,9 +111,9 @@ def make_gym_env(**kwargs):
     else:
         fixed_episode_length = None
 
-    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5, p_meas=0.011, p_phys=0.011)
+    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='DP', volume_depth=5, p_meas=0.011, p_phys=0.011, use_Y=False)
     # env = gym.make(**kwargs)
-    # env = FixedLengthEnvWrapper(env, fixed_episode_length=fixed_episode_length)
+    env = FixedLengthEnvWrapper(env, fixed_episode_length=fixed_episode_length)
     # return GymEnvWrapper(EnvInfoWrapper(env, info_example))
     return GymEnvWrapper(env)
 
