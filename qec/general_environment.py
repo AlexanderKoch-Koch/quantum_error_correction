@@ -2,11 +2,19 @@ from qec.optimized_environment import OptimizedSurfaceCodeEnvironment
 import time
 import numpy as np
 from qec.Function_Library import *
+import gym
 
 class GeneralSurfaceCodeEnv(OptimizedSurfaceCodeEnvironment):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, volume_depth=1)
-
+        img_shape = (self.volume_depth, 2 * self.d + 1, 2 * self.d + 1)
+        self.observation_space = gym.spaces.Box(low=0, high=1,
+                                                shape=img_shape,
+                                                dtype=np.uint8)
+        
+    def reset(self):
+        obs = super().reset()
+        return obs[:1]
 
     def step(self, action):
         """
@@ -21,8 +29,6 @@ class GeneralSurfaceCodeEnv(OptimizedSurfaceCodeEnvironment):
         start = time.time()
         done_identity = False
         action = int(action)  # make sure action is integer
-        if action == self.identity_index or int(self.completed_actions[action]) == 1:
-            done_identity = True
         # 1) Apply the action to the hidden state
         action_lattice = index_to_move(self.d, action, self.error_model, self.use_Y)
         self.hidden_state = obtain_new_error_configuration(self.hidden_state, action_lattice)
@@ -48,8 +54,9 @@ class GeneralSurfaceCodeEnv(OptimizedSurfaceCodeEnvironment):
         current_faulty_syndrome = generate_faulty_syndrome(self.current_true_syndrome, self.p_meas)
         self.lifetime += 1
         obs = [self.padding_syndrome(current_faulty_syndrome)]
-        for k in range(self.n_action_layers):
-            obs.append(self.padding_actions(self.completed_actions[k * self.d ** 2:(k + 1) * self.d ** 2]))
+        # self.completed_actions[action] = int(not (self.completed_actions[action]))
+        # for k in range(self.n_action_layers):
+        #     obs.append(self.padding_actions(self.completed_actions[k * self.d ** 2:(k + 1) * self.d ** 2]))
         obs = np.stack(obs)
         info = dict(lifetime=self.lifetime,
                     static_decoder_input=static_decoder_input,

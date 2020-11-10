@@ -50,15 +50,16 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         algo = VMPO(discrete_actions=True, epochs=4, minibatches=16, T_target_steps=10, initial_optim_state_dict=optim_state_dict)
         sampler_kwargs = dict()
 
+    env_kwargs = dict(error_model='DP', error_rate=0.011)
 
     sampler = SamplerCls(
-        EnvCls=make_gym_env,
+        EnvCls=make_qec_env,
         # TrajInfoCls=AtariTrajInfo,
-        env_kwargs=dict(id=id),
+        env_kwargs=env_kwargs,
         batch_T=40,
         batch_B=23 * 32,
         max_decorrelation_steps=100,
-        eval_env_kwargs=dict(id=id, fixed_episode_length=1000),
+        eval_env_kwargs=env_kwargs,
         eval_n_envs=23,
         eval_max_steps=int(1e5),
         eval_max_trajectories=23 * 1,
@@ -80,8 +81,13 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
     config_logger(log_dir, name=name, snapshot_mode='last', log_params=config)
     runner.train()
 
+def make_qec_env(error_model, error_rate, volume_depth=5):
+    env = OptimizedSurfaceCodeEnvironment(error_model=error_model, volume_depth=volume_depth,
+                                          p_meas=error_rate, p_phys=error_rate)
+    return GymEnvWrapper(env)
 
-def make_gym_env(**kwargs):
+
+def make_gym_env(error_model, **kwargs):
     import qec
     info_example = {'timeout': 0}
     print('making env: ' + str(kwargs))

@@ -16,9 +16,12 @@ import time
 
 
 class QecDbCpuResetCollector(DoubleBufferCollectorMixin, CpuResetCollector):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
+    def __init__(self, rank, envs, *args, **kwargs):
+        super().__init__(rank, envs, *args, **kwargs)
+        if envs[0].error_model == 'X':
+            self.static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
+        else:
+            self.static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_DP_p5'
         self.static_decoder = load_model(self.static_decoder_path, compile=True)
 
     def collect_batch(self, *args, **kwargs):
@@ -93,9 +96,13 @@ class QecCpuEvalCollector(BaseEvalCollector):
     signaled by the master process (i.e. if enough trajectories have
     completed).
     """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, rank, envs, *args, **kwargs):
+        super().__init__(rank, envs, *args, **kwargs)
         static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
+        if envs[0].error_model == 'X':
+            self.static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
+        else:
+            self.static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_DP_p5'
         self.static_decoder = load_model(static_decoder_path, compile=True)
 
     def collect_evaluation(self, itr, max_episodes=1):
