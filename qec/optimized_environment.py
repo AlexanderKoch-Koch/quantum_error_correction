@@ -54,6 +54,7 @@ class OptimizedSurfaceCodeEnvironment(gym.Env):
                  static_decoder=None, channels_first=True):
         # tf.compat.v1.enable_eager_execution() # make sure eager execution is enabled
         # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+        print(f'env initialized with error model {error_model}')
         self.d = d
         self.p_phys = p_phys
         self.p_meas = p_meas

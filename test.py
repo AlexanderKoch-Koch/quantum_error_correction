@@ -54,6 +54,7 @@ def simulate_policy(env, agent, render):
 
             # action = np.argmax(observation[0].demonstration_actions)
             # print(np.argmax(obs_pyt[0].demonstration_actions) == action)
+            print(f'action : {action}')
             obs, reward, done, info = env.step(action)
             # done = np.argmax(static_decoder(info.static_decoder_input)[0]) != info.correct_label
             # forward_reward += info.forward_reward
@@ -91,7 +92,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--path', help='path to params.pkl',
                         # default='/home/alex/important_logs/transformer_ml3/params.pkl')
-                        default='/home/alex/quantum_error_correction/logs/run_17/params.pkl')
+                        default='/home/alex/quantum_error_correction/logs/run_39/params.pkl')
     parser.add_argument('--env', default='HumanoidPrimitivePretraining-v0',
                         choices=['HumanoidPrimitivePretraining-v0', 'TrackEnv-v0'])
     parser.add_argument('--algo', default='ppo', choices=['sac', 'ppo'])
@@ -100,18 +101,18 @@ if __name__ == "__main__":
     snapshot = torch.load(args.path, map_location=torch.device('cpu'))
     agent_state_dict = snapshot['agent_state_dict']
     env = make_env()
-    agent = AtariDqnAgent(model_kwargs=dict(channels=[64, 32, 32],
-                                            kernel_sizes=[3, 2, 2],
-                                            strides=[2, 1, 1],
-                                            paddings=[0, 0, 0],
-                                            fc_sizes=[512, ],
-                                            dueling=True),
-                          ModelCls=QECModel,
-                          eps_eval=0.001)
+    # agent = AtariDqnAgent(model_kwargs=dict(channels=[64, 32, 32],
+    #                                         kernel_sizes=[3, 2, 2],
+    #                                         strides=[2, 1, 1],
+    #                                         paddings=[0, 0, 0],
+    #                                         fc_sizes=[512, ],
+    #                                         dueling=True),
+    #                       ModelCls=QECModel,
+    #                       eps_eval=0.001)
     # agent = CategoricalVmpoAgent(ModelCls=CategorialFfModel, model_kwargs=dict(linear_value_output=False))
-    # agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False))
+    agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False))
     agent.initialize(env_spaces=env.spaces)
-    agent.load_state_dict(agent_state_dict['model'])
+    agent.load_state_dict(agent_state_dict)
     agent.eval_mode(1)
     # agent.sample_mode(0)
     from rlpyt.samplers.serial.collectors import SerialEvalCollector
