@@ -20,7 +20,7 @@ from imitation_learning.vmpo.v_mpo import VMPO
 from imitation_learning.vmpo.categorical_vmpo_agent import CategoricalVmpoAgent
 from imitation_learning.vmpo.categorical_models import CategorialFfModel
 from qec_vmpo_agent import QECVmpoAgent
-from qec.qec_collectors import QecCpuEvalCollector, QecDbCpuResetCollector
+from qec.qec_collectors import QecCpuEvalCollector, QecDbCpuResetCollector, QecCpuResetCollector
 from qec.optimized_environment import OptimizedSurfaceCodeEnvironment
 from qec.general_environment import GeneralSurfaceCodeEnv
 from qec.fixed_length_env_wrapper import FixedLengthEnvWrapper
@@ -72,12 +72,12 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         SamplerCls = AsyncCpuSampler
         RunnerCls = AsyncRlEval
         algo = AsyncVMPO(batch_B=64, batch_T=40, discrete_actions=True, T_target_steps=40, epochs=1, initial_optim_state_dict=optim_state_dict)
-        sampler_kwargs=dict()#CollectorCls=QecDbCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
+        sampler_kwargs=dict(CollectorCls=QecDbCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
     else:
         SamplerCls = CpuSampler
         RunnerCls = MinibatchRlEval
         algo = VMPO(discrete_actions=True, epochs=4, minibatches=40, T_target_steps=40, initial_optim_state_dict=optim_state_dict)
-        sampler_kwargs = dict()
+        sampler_kwargs=dict(CollectorCls=QecCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
 
     env_kwargs = dict(error_model='DP', error_rate=0.005)
 
@@ -103,7 +103,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         agent=agent,
         sampler=sampler,
         n_steps=1e10,
-        log_interval_steps=3e6,
+        log_interval_steps=5e5,
         affinity=affinity,
 
     )
