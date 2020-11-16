@@ -37,6 +37,8 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         affinity = make_affinity(n_cpu_core=num_cpus, cpu_per_run=num_cpus, n_gpu=num_gpus, async_sample=False,
                                      set_affinity=True)
         affinity['workers_cpus'] = tuple(range(num_cpus * 2))
+        affinity['master_torch_threads'] = 28
+
         # num_optimizer_threads = 32
         # optimizer_threads = list(range(num_optimizer_threads))
         # affinity = dict(all_cpus=list(range(num_cpus)),
@@ -76,7 +78,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
     else:
         SamplerCls = CpuSampler
         RunnerCls = MinibatchRlEval
-        algo = VMPO(discrete_actions=True, epochs=4, minibatches=40, T_target_steps=40, initial_optim_state_dict=optim_state_dict)
+        algo = VMPO(discrete_actions=True, epochs=4, minibatches=40, initial_optim_state_dict=optim_state_dict)
         sampler_kwargs=dict(CollectorCls=QecCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
 
     env_kwargs = dict(error_model='DP', error_rate=0.005)
@@ -89,9 +91,9 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         batch_B=64 * 40,
         max_decorrelation_steps=50,
         eval_env_kwargs=env_kwargs,
-        eval_n_envs=1,
+        eval_n_envs=num_cpus,
         eval_max_steps=int(1e5),
-        eval_max_trajectories=10,
+        eval_max_trajectories=num_cpus,
         TrajInfoCls=EnvInfoTrajInfo,
         **sampler_kwargs
     )
@@ -121,7 +123,7 @@ def make_qec_env(error_model, error_rate, volume_depth=5):
 def make_gym_env(error_model, **kwargs):
     import qec
     info_example = {'timeout': 0}
-    print('making env: ' + str(kwargs))
+    # print('making env: ' + str(kwargs))
     static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
     # from keras.models import load_model
     # static_decoder = load_model(static_decoder_path)
