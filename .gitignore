@@ -5,3 +5,4 @@ debug_log_dir
 logs
 *.egg_info
 *.egg-info
+nohup.out
