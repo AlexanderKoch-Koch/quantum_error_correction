@@ -30,12 +30,13 @@ from rlpyt.samplers.parallel.cpu.sampler import CpuSampler
 
 
 def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mode=False, restore_path=None):
-    num_cpus = 56 #multiprocessing.cpu_count()
-    num_gpus = len(GPUtil.getGPUs())
+    num_cpus = multiprocessing.cpu_count() // 2
+    num_gpus = 0 #len(GPUtil.getGPUs())
     # print(f"num cpus {num_cpus} num gpus {num_gpus}")
     if num_gpus == 0:
-        affinity = affinity = make_affinity(n_cpu_core=num_cpus, cpu_per_run=num_cpus, n_gpu=num_gpus, async_sample=False,
-                                     set_affinity=False)
+        affinity = make_affinity(n_cpu_core=num_cpus, cpu_per_run=num_cpus, n_gpu=num_gpus, async_sample=False,
+                                     set_affinity=True)
+        affinity['workers_cpus'] = tuple(range(num_cpus * 2))
         # num_optimizer_threads = 32
         # optimizer_threads = list(range(num_optimizer_threads))
         # affinity = dict(all_cpus=list(range(num_cpus)),
@@ -73,9 +74,9 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         algo = AsyncVMPO(batch_B=64, batch_T=40, discrete_actions=True, T_target_steps=40, epochs=1, initial_optim_state_dict=optim_state_dict)
         sampler_kwargs=dict()#CollectorCls=QecDbCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
     else:
-        SamplerCls = SerialSampler
+        SamplerCls = CpuSampler
         RunnerCls = MinibatchRlEval
-        algo = VMPO(discrete_actions=True, epochs=4, minibatches=32, T_target_steps=40, initial_optim_state_dict=optim_state_dict)
+        algo = VMPO(discrete_actions=True, epochs=4, minibatches=40, T_target_steps=40, initial_optim_state_dict=optim_state_dict)
         sampler_kwargs = dict()
 
     env_kwargs = dict(error_model='DP', error_rate=0.005)
@@ -85,7 +86,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         # TrajInfoCls=AtariTrajInfo,
         env_kwargs=env_kwargs,
         batch_T=40,
-        batch_B=64 * 32,
+        batch_B=64 * 40,
         max_decorrelation_steps=50,
         eval_env_kwargs=env_kwargs,
         eval_n_envs=1,
