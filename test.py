@@ -13,14 +13,14 @@ from logger_context import config_logger
 from rlpyt.utils.launching.affinity import make_affinity
 from rlpyt.algos.dqn.dqn import DQN
 from qec_vmpo_agent import QECVmpoAgent
-from rlpyt_models import VmpoQECModel
+from rlpyt_models import QECModel, VmpoQECModel, RecurrentVmpoQECModel
 from imitation_learning.vmpo.categorical_vmpo_agent import CategoricalVmpoAgent
 from imitation_learning.vmpo.categorical_models import CategorialFfModel
 from rlpyt.agents.dqn.atari.atari_dqn_agent import AtariDqnAgent
 from keras.models import load_model
 
 def simulate_policy(env, agent, render):
-    static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'
+    static_decoder_path = './qec/referee_decoders/nn_d5_DP_p5'
     static_decoder = load_model(static_decoder_path, compile=True)
     obs = env.reset()
     observation = buffer_from_example(obs, 1)
@@ -54,7 +54,7 @@ def simulate_policy(env, agent, render):
 
             # action = np.argmax(observation[0].demonstration_actions)
             # print(np.argmax(obs_pyt[0].demonstration_actions) == action)
-            print(f'action : {action}')
+            # print(f'action : {action}')
             obs, reward, done, info = env.step(action)
             # done = np.argmax(static_decoder(info.static_decoder_input)[0]) != info.correct_label
             # forward_reward += info.forward_reward
@@ -82,7 +82,7 @@ def make_env(**kwargs):
     info_example = {'timeout': 0}
     import qec
     # env = gym.make('CartPole-v0')
-    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='DP', volume_depth=5, p_meas=0.011, p_phys=0.011, use_Y=False)
+    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='DP', volume_depth=1, p_meas=0.005, p_phys=0.005, use_Y=False)
     # env = OptimizedSurfaceCodeEnvironment(error_model='X', volume_depth=5, p_meas=0.011, p_phys=0.011)
     env =  GymEnvWrapper(EnvInfoWrapper(env, info_example))
     return env
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--path', help='path to params.pkl',
                         # default='/home/alex/important_logs/transformer_ml3/params.pkl')
-                        default='/home/alex/quantum_error_correction/logs/run_39/params.pkl')
+                        default='./logs/run_29/params.pkl')
     parser.add_argument('--env', default='HumanoidPrimitivePretraining-v0',
                         choices=['HumanoidPrimitivePretraining-v0', 'TrackEnv-v0'])
     parser.add_argument('--algo', default='ppo', choices=['sac', 'ppo'])
@@ -110,7 +110,8 @@ if __name__ == "__main__":
     #                       ModelCls=QECModel,
     #                       eps_eval=0.001)
     # agent = CategoricalVmpoAgent(ModelCls=CategorialFfModel, model_kwargs=dict(linear_value_output=False))
-    agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False))
+    # agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False))
+    agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     agent.initialize(env_spaces=env.spaces)
     agent.load_state_dict(agent_state_dict)
     agent.eval_mode(1)

@@ -30,13 +30,13 @@ from rlpyt.samplers.parallel.cpu.sampler import CpuSampler
 
 
 def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mode=False, restore_path=None):
-    num_cpus = multiprocessing.cpu_count() // 2
+    num_cpus = multiprocessing.cpu_count()
     num_gpus = 0 #len(GPUtil.getGPUs())
     # print(f"num cpus {num_cpus} num gpus {num_gpus}")
     if num_gpus == 0:
-        affinity = make_affinity(n_cpu_core=num_cpus, cpu_per_run=num_cpus, n_gpu=num_gpus, async_sample=False,
+        affinity = make_affinity(n_cpu_core=num_cpus//2, cpu_per_run=num_cpus//2, n_gpu=num_gpus, async_sample=False,
                                      set_affinity=True)
-        affinity['workers_cpus'] = tuple(range(num_cpus * 2))
+        affinity['workers_cpus'] = tuple(range(num_cpus))
         affinity['master_torch_threads'] = 28
 
         # num_optimizer_threads = 32
@@ -81,7 +81,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         algo = VMPO(discrete_actions=True, epochs=4, minibatches=40, initial_optim_state_dict=optim_state_dict)
         sampler_kwargs=dict(CollectorCls=QecCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
 
-    env_kwargs = dict(error_model='DP', error_rate=0.005)
+    env_kwargs = dict(error_model='DP', error_rate=0.005, volume_depth=1)
 
     sampler = SamplerCls(
         EnvCls=make_qec_env,
@@ -92,13 +92,13 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         max_decorrelation_steps=50,
         eval_env_kwargs=env_kwargs,
         eval_n_envs=num_cpus,
-        eval_max_steps=int(1e5),
+        eval_max_steps=int(1e6),
         eval_max_trajectories=num_cpus,
         TrajInfoCls=EnvInfoTrajInfo,
         **sampler_kwargs
     )
-    # agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
-    agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    # agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=CategorialFfModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     runner = RunnerCls(
         algo=algo,
@@ -116,6 +116,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
 def make_qec_env(error_model, error_rate, volume_depth=5):
     env = OptimizedSurfaceCodeEnvironment(error_model=error_model, volume_depth=volume_depth,
                                           p_meas=error_rate, p_phys=error_rate)
+    # env = GeneralSurfaceCodeEnv(error_model=error_model, p_meas=error_rate, p_phys=error_rate, use_Y=False)
     # env = gym.make('CartPole-v0')
     return GymEnvWrapper(env)
 
@@ -134,9 +135,9 @@ def make_gym_env(error_model, **kwargs):
         fixed_episode_length = None
 
     # env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='X', volume_depth=5, p_meas=0.001, p_phys=0.001)
-    env = OptimizedSurfaceCodeEnvironment(error_model='DP', volume_depth=5, p_meas=0.011, p_phys=0.011)
+    #env = OptimizedSurfaceCodeEnvironment(error_model='DP', volume_depth=5, p_meas=0.011, p_phys=0.011)
     env = gym.make('Pendulum-v0')
-    # env = GeneralSurfaceCodeEnv(error_model='DP', p_meas=0.011, p_phys=0.011)
+    env = GeneralSurfaceCodeEnv(error_model='DP', p_meas=0.011, p_phys=0.011, use_Y=True)
     # env = gym.make('CartPole-v0')
     # env = FixedLengthEnvWrapper(env, fixed_episode_length=fixed_episode_length)
     # return GymEnvWrapper(EnvInfoWrapper(env, info_example))

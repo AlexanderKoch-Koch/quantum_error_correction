@@ -50,7 +50,7 @@ class OptimizedSurfaceCodeEnvironment(gym.Env):
 
     """
 
-    def __init__(self, d=5, p_phys=0.001, p_meas=0.001, error_model="DP", use_Y=True, volume_depth=3,
+    def __init__(self, d=5, p_phys=0.001, p_meas=0.001, error_model="DP", use_Y=False, volume_depth=5,
                  static_decoder=None, channels_first=True):
         # tf.compat.v1.enable_eager_execution() # make sure eager execution is enabled
         # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
