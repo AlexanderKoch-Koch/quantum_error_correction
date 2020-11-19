@@ -11,6 +11,7 @@ class QECSynchronousRunner(MinibatchRlEval):
         specified log interval.
         """
         n_itr = self.startup()
+        breakpoint()
         with logger.prefix(f"itr #0 "):
             eval_traj_infos, eval_time = self.evaluate_agent(0)
             self.log_diagnostics(0, eval_traj_infos, eval_time)
@@ -31,8 +32,13 @@ class QECSynchronousRunner(MinibatchRlEval):
                     avg_lifetime = np.nanmean(np.array([x['lifetime'] for x in eval_traj_infos]))
                     if avg_lifetime > (1/current_p_error):
                         new_p_error = current_p_error + 0.002
+                        self.sampler.env_kwargs['error_rate'] = new_p_error
+                        self.sampler.eval_env_kwargs['error_rate'] = new_p_error
                         print(f'new p error is {new_p_error}')
-                        for env in self.sampler.collector.envs + self.sampler.eval_collector.envs:
-                            env.p_phys = new_p_error
-                            env.p_meas = new_p_error
+                        self.shutdown()
+                        self.startup()
+
+                        # for env in self.sampler.collector.envs + self.sampler.eval_collector.envs:
+                        #     env.p_phys = new_p_error
+                        #     env.p_meas = new_p_error
         self.shutdown()
