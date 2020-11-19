@@ -78,7 +78,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
     else:
         SamplerCls = CpuSampler
         RunnerCls = MinibatchRlEval
-        algo = VMPO(discrete_actions=True, epochs=4, minibatches=40, initial_optim_state_dict=optim_state_dict)
+        algo = VMPO(discrete_actions=True, epochs=4, minibatches=100, initial_optim_state_dict=optim_state_dict, epsilon_alpha=0.005)
         sampler_kwargs=dict(CollectorCls=QecCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
 
     env_kwargs = dict(error_model='DP', error_rate=0.005, volume_depth=1)
@@ -88,7 +88,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         # TrajInfoCls=AtariTrajInfo,
         env_kwargs=env_kwargs,
         batch_T=40,
-        batch_B=64 * 40,
+        batch_B=64 * 100,
         max_decorrelation_steps=50,
         eval_env_kwargs=env_kwargs,
         eval_n_envs=num_cpus,

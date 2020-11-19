@@ -153,7 +153,7 @@ class RecurrentVmpoQECModel(torch.nn.Module):
         c, h, w = observation_shape
         self.conv = Conv2dModel(
             in_channels=c,
-            channels=channels or [32, 64, 64],
+            channels=channels or [64, 32, 32],
             kernel_sizes=kernel_sizes or [3, 2, 2],
             strides=strides or [2, 1, 1],
             paddings=paddings or [0, 0, 0],
@@ -205,7 +205,7 @@ class QECTransformerModel(torch.nn.Module):
         c, h, w = observation_shape
         self.conv = Conv2dModel(
             in_channels=c,
-            channels=channels or [32, 64, 64],
+            channels=channels or [64, 32, 32],
             kernel_sizes=kernel_sizes or [3, 2, 2],
             strides=strides or [2, 1, 1],
             paddings=paddings or [0, 0, 0],
