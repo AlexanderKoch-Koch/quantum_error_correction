@@ -13,7 +13,7 @@ from rlpyt.samplers.serial.sampler import SerialSampler
 from rlpyt.samplers.parallel.cpu.sampler import CpuSampler
 from rlpyt.runners.minibatch_rl import MinibatchRlEval
 import torch
-from rlpyt_models import QECModel, VmpoQECModel, RecurrentVmpoQECModel
+from rlpyt_models import QECModel, VmpoQECModel, RecurrentVmpoQECModel, QECTransformerModel
 from qec.Environments import Surface_Code_Environment_Multi_Decoding_Cycles
 from imitation_learning.vmpo.async_vmpo import AsyncVMPO
 from imitation_learning.vmpo.v_mpo import VMPO
@@ -97,7 +97,8 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         TrajInfoCls=EnvInfoTrajInfo,
         **sampler_kwargs
     )
-    agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    # agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    agent = CategoricalVmpoAgent(ModelCls=QECTransformerModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=CategorialFfModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     runner = RunnerCls(
