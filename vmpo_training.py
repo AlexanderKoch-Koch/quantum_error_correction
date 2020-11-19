@@ -27,6 +27,7 @@ from qec.fixed_length_env_wrapper import FixedLengthEnvWrapper
 import GPUtil
 import multiprocessing
 from rlpyt.samplers.parallel.cpu.sampler import CpuSampler
+from qec.synchronous_runner import QECSynchronousRunner
 
 
 def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mode=False, restore_path=None):
@@ -34,25 +35,11 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
     num_gpus = 0 #len(GPUtil.getGPUs())
     # print(f"num cpus {num_cpus} num gpus {num_gpus}")
     if num_gpus == 0:
+        # affinity = make_affinity(n_cpu_core=num_cpus // 2, n_gpu=0, set_affinity=False)
         affinity = make_affinity(n_cpu_core=num_cpus//2, cpu_per_run=num_cpus//2, n_gpu=num_gpus, async_sample=False,
                                      set_affinity=True)
         affinity['workers_cpus'] = tuple(range(num_cpus))
         affinity['master_torch_threads'] = 28
-
-        # num_optimizer_threads = 32
-        # optimizer_threads = list(range(num_optimizer_threads))
-        # affinity = dict(all_cpus=list(range(num_cpus)),
-        #                 optimizer=[dict(cpus=optimizer_threads,
-        #                                 cuda_idx=0,
-        #                                 torch_threads=num_optimizer_threads,
-        #                                 set_affinity=True)],
-        #                 sampler=dict(all_cpus=[i for i in range(num_cpus) if i not in optimizer_threads],
-        #                             master_cpus=[i for i in range(num_cpus) if i not in optimizer_threads],
-        #                             workers_cpus=[i for i in range(num_cpus) if i not in optimizer_threads],
-        #                             set_affinity=True,
-        #                             master_torch_threads=num_cpus,
-        #                 ), set_affinity=True)
-        # affinity = rlpyt.utils.collections.AttrDict(affinity)
     else:
         affinity = make_affinity(
             run_slot=0,
@@ -77,11 +64,13 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         sampler_kwargs=dict(CollectorCls=QecDbCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
     else:
         SamplerCls = CpuSampler
-        RunnerCls = MinibatchRlEval
-        algo = VMPO(discrete_actions=True, epochs=4, minibatches=100, initial_optim_state_dict=optim_state_dict, epsilon_alpha=0.005)
+        # SamplerCls = SerialSampler
+        # RunnerCls = MinibatchRlEval
+        RunnerCls = QECSynchronousRunner
+        algo = VMPO(discrete_actions=True, epochs=4, minibatches=100, initial_optim_state_dict=optim_state_dict, epsilon_alpha=0.01)
         sampler_kwargs=dict(CollectorCls=QecCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
 
-    env_kwargs = dict(error_model='DP', error_rate=0.005, volume_depth=1)
+    env_kwargs = dict(error_model='DP', error_rate=0.001, volume_depth=1)
 
     sampler = SamplerCls(
         EnvCls=make_qec_env,
@@ -97,8 +86,8 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         TrajInfoCls=EnvInfoTrajInfo,
         **sampler_kwargs
     )
-    # agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
-    agent = CategoricalVmpoAgent(ModelCls=QECTransformerModel, model_kwargs=dict(linear_value_output=False, sequence_length=40), initial_model_state_dict=agent_state_dict)
+    agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    # agent = CategoricalVmpoAgent(ModelCls=QECTransformerModel, model_kwargs=dict(linear_value_output=False, sequence_length=40), initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=CategorialFfModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     runner = RunnerCls(
@@ -106,9 +95,8 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         agent=agent,
         sampler=sampler,
         n_steps=1e10,
-        log_interval_steps=5e5,
+        log_interval_steps=1e6,
         affinity=affinity,
-
     )
     config = dict(game=id)
     config_logger(log_dir, name=name, snapshot_mode='last', log_params=config)
