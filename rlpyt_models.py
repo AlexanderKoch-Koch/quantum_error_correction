@@ -213,7 +213,7 @@ class QECTransformerModel(torch.nn.Module):
         )
         self.conv_out_size = self.conv.conv_out_size(h, w)
         self.sequence_length = sequence_length
-        self.transformer_dim = SIZES[size]['dim']
+        self.transformer_dim = 32 # SIZES[size]['dim']
         self.depth = SIZES[size]['depth']
         self.cmem_ratio = SIZES[size]['cmem_ratio']
         self.cmem_length = self.sequence_length // self.cmem_ratio
@@ -240,7 +240,7 @@ class QECTransformerModel(torch.nn.Module):
         self.softplus = torch.nn.Softplus()
         self.pi_head = MlpModel(input_size=self.transformer_dim,
                                 hidden_sizes=[256, ],
-                                output_size=2 * action_size)
+                                output_size=action_size)
         self.value_head = MlpModel(input_size=self.transformer_dim,
                                    hidden_sizes=[256, ],
                                    output_size=1 if linear_value_output else None)
@@ -249,7 +249,7 @@ class QECTransformerModel(torch.nn.Module):
     def forward(self, observation, prev_action, prev_reward, state):
         img = observation.type(torch.float)  # Expect torch.uint8 inputs
         lead_dim, T, B, img_shape = infer_leading_dims(img, 3)
-        conv_out = self.conv(img.view(T * B, *img_shape)).reshape(T *B , -1)
+        conv_out = self.conv(img.view(T * B, *img_shape)).reshape(T, B , -1)
 
         if T == 1:
             transformer_output, state = self.sample_forward(conv_out, state)

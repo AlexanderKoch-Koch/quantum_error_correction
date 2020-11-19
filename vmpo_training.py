@@ -98,7 +98,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         **sampler_kwargs
     )
     # agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
-    agent = CategoricalVmpoAgent(ModelCls=QECTransformerModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    agent = CategoricalVmpoAgent(ModelCls=QECTransformerModel, model_kwargs=dict(linear_value_output=False, sequence_length=40), initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=CategorialFfModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     runner = RunnerCls(
