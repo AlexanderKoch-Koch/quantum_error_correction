@@ -82,7 +82,7 @@ def make_env(**kwargs):
     info_example = {'timeout': 0}
     import qec
     # env = gym.make('CartPole-v0')
-    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='DP', volume_depth=1, p_meas=0.005, p_phys=0.005, use_Y=False)
+    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='DP', volume_depth=1, p_meas=0.011, p_phys=0.011, use_Y=False)
     # env = OptimizedSurfaceCodeEnvironment(error_model='X', volume_depth=5, p_meas=0.011, p_phys=0.011)
     env =  GymEnvWrapper(EnvInfoWrapper(env, info_example))
     return env
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--path', help='path to params.pkl',
                         # default='/home/alex/important_logs/transformer_ml3/params.pkl')
-                        default='./logs/run_29/params.pkl')
+                        default='./logs/run_32/params.pkl')
     parser.add_argument('--env', default='HumanoidPrimitivePretraining-v0',
                         choices=['HumanoidPrimitivePretraining-v0', 'TrackEnv-v0'])
     parser.add_argument('--algo', default='ppo', choices=['sac', 'ppo'])
