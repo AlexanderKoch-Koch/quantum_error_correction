@@ -7,14 +7,16 @@ import gym
 class GeneralSurfaceCodeEnv(OptimizedSurfaceCodeEnvironment):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, volume_depth=1)
-        img_shape = (self.volume_depth, 2 * self.d + 1, 2 * self.d + 1)
+
+        img_shape = (self.volume_depth + self.n_action_layers, 2 * self.d + 1, 2 * self.d + 1)
         self.observation_space = gym.spaces.Box(low=0, high=1,
                                                 shape=img_shape,
                                                 dtype=np.uint8)
-        
+        self.action_space = gym.spaces.MultiBinary(self.num_actions)
+
     def reset(self):
         obs = super().reset()
-        return obs[:1]
+        return obs# [:1]
 
     def step(self, action):
         """
@@ -26,12 +28,15 @@ class GeneralSurfaceCodeEnv(OptimizedSurfaceCodeEnvironment):
         :return: self.done: The boolean terminal state indicator
         :return: info: A dictionary via which additional diagnostic information can be provided. Empty here.
         """
-        start = time.time()
-        done_identity = False
-        action = int(action)  # make sure action is integer
+        # start = time.time()
+        # done_identity = False
+        # action = int(action)  # make sure action is integer
         # 1) Apply the action to the hidden state
-        action_lattice = index_to_move(self.d, action, self.error_model, self.use_Y)
-        self.hidden_state = obtain_new_error_configuration(self.hidden_state, action_lattice)
+        self.completed_actions = np.zeros(self.num_actions, int)
+        for action_index in np.where(action == 1)[0]:
+            action_lattice = index_to_move(self.d, action_index, self.error_model, self.use_Y)
+            self.hidden_state = obtain_new_error_configuration(self.hidden_state, action_lattice)
+            self.completed_actions[action_index] = int(not (self.completed_actions[action_index]))
 
         # 2) Calculate the reward
         self.current_true_syndrome = self.generate_surface_code_syndrome_NoFT_efficient(self.hidden_state, self.qubits)
@@ -55,8 +60,8 @@ class GeneralSurfaceCodeEnv(OptimizedSurfaceCodeEnvironment):
         self.lifetime += 1
         obs = [self.padding_syndrome(current_faulty_syndrome)]
         # self.completed_actions[action] = int(not (self.completed_actions[action]))
-        # for k in range(self.n_action_layers):
-        #     obs.append(self.padding_actions(self.completed_actions[k * self.d ** 2:(k + 1) * self.d ** 2]))
+        for k in range(self.n_action_layers):
+            obs.append(self.padding_actions(self.completed_actions[k * self.d ** 2:(k + 1) * self.d ** 2]))
         obs = np.stack(obs)
         info = dict(lifetime=self.lifetime,
                     static_decoder_input=static_decoder_input,

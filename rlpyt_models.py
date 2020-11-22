@@ -177,7 +177,8 @@ class RecurrentVmpoQECModel(torch.nn.Module):
         head_input = torch.cat((features, lstm_out.reshape(T * B, -1)), dim=-1)
 
         pi = self.pi_head(head_input)
-        pi = torch.softmax(pi, dim=-1)
+        # pi = torch.softmax(pi, dim=-1)
+        pi = torch.sigmoid(pi)
         value = self.value_head(head_input).squeeze(-1)
 
         # Restore leading dimensions: [T,B], [B], or [], as input.
