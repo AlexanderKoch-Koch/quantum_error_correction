@@ -16,7 +16,7 @@ class IndependentBernoulli(Distribution):
     def kl(self, old_dist_info, new_dist_info):
         p = old_dist_info.prob
         q = new_dist_info.prob
-        kl = (p * (torch.log(p) - torch.log(q)) + (1 - p) * (torch.log(1 - p) - torch.log(1 - q))).sum(dim=-1)
+        kl = (p * (torch.log(p + EPS) - torch.log(q + EPS)) + (1 - p) * (torch.log(1 - p + EPS) - torch.log(1 - q + EPS))).sum(dim=-1)
         return kl
         # return torch.sum(p * (torch.log(p + EPS) - torch.log(q + EPS)), dim=-1)
 
