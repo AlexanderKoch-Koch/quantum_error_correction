@@ -50,13 +50,13 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         # sampler=SerialSampler(
         EnvCls=make_gym_env,
         # TrajInfoCls=AtariTrajInfo,
-        env_kwargs=dict(error_rate=0.001),
+        env_kwargs=dict(error_rate=0.005),
         batch_T=10,
         batch_B=num_cpus * 10,
         max_decorrelation_steps=100,
-        eval_env_kwargs=dict(error_rate=0.001, fixed_episode_length=1000),
+        eval_env_kwargs=dict(error_rate=0.005, fixed_episode_length=5000),
         eval_n_envs=num_cpus,
-        eval_max_steps=int(1e5),
+        eval_max_steps=int(1e6),
         eval_max_trajectories=num_cpus,
         TrajInfoCls=EnvInfoTrajInfo
     )
@@ -69,7 +69,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         double_dqn=True,
         # target_update_tau=0.002,
         target_update_interval=5000,
-        ReplayBufferCls=AsyncUniformReplayBuffer,
+        # ReplayBufferCls=AsyncUniformReplayBuffer,
         initial_optim_state_dict=optim_state_dict,
         eps_steps=2e6,
     )
@@ -82,7 +82,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
                           ModelCls=QECModel,
                           eps_init=1,
                           eps_final=0.02,
-                          eps_itr_max=int(2e5),
+                          eps_itr_max=int(5e6),
                           eps_eval=0,
                           initial_model_state_dict=agent_state_dict)
     # agent = DqnAgent(ModelCls=FfModel)
@@ -92,7 +92,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         agent=agent,
         sampler=sampler,
         n_steps=1e8,
-        log_interval_steps=2e5,
+        log_interval_steps=3e5,
         affinity=affinity,
     )
     config = dict(game=id)

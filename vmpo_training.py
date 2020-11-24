@@ -71,7 +71,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         algo = VMPO(discrete_actions=True, epochs=4, minibatches=100, initial_optim_state_dict=optim_state_dict, epsilon_alpha=0.01)
         sampler_kwargs=dict(CollectorCls=QecCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
 
-    env_kwargs = dict(error_model='DP', error_rate=0.001, volume_depth=1)
+    env_kwargs = dict(error_model='DP', error_rate=0.005, volume_depth=1)
 
     sampler = SamplerCls(
         EnvCls=make_qec_env,
@@ -87,8 +87,8 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         TrajInfoCls=EnvInfoTrajInfo,
         **sampler_kwargs
     )
-    # agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
-    agent = MultiActionVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    # agent = MultiActionVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=QECTransformerModel, model_kwargs=dict(linear_value_output=False, sequence_length=40), initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=CategorialFfModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
@@ -105,9 +105,9 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
     runner.train()
 
 def make_qec_env(error_model, error_rate, volume_depth=5):
-    # env = OptimizedSurfaceCodeEnvironment(error_model=error_model, volume_depth=volume_depth,
-    #                                       p_meas=error_rate, p_phys=error_rate)
-    env = GeneralSurfaceCodeEnv(error_model=error_model, p_meas=error_rate, p_phys=error_rate, use_Y=False)
+    env = OptimizedSurfaceCodeEnvironment(error_model=error_model, volume_depth=volume_depth,
+                                          p_meas=error_rate, p_phys=error_rate)
+    # env = GeneralSurfaceCodeEnv(error_model=error_model, p_meas=error_rate, p_phys=error_rate, use_Y=False)
     # env = gym.make('CartPole-v0')
     return GymEnvWrapper(env)
 
