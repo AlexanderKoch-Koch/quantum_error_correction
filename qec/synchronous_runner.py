@@ -30,8 +30,8 @@ class QECSynchronousRunner(MinibatchRlEval):
                     self.log_diagnostics(itr, eval_traj_infos, eval_time)
                     avg_lifetime = np.nanmean(np.array([x['lifetime'] for x in eval_traj_infos]))
                     if avg_lifetime > (1/p_error):
-                        if p_error + 0.002 <= 0.011001:
-                            p_error += 0.002
+                        if p_error  < 0.010:
+                            p_error = 0.011
                             self.sampler.env_kwargs['error_rate'] = p_error
                             self.sampler.eval_env_kwargs['error_rate'] = p_error
                             print(f'new p error is {p_error}', flush=True)

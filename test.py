@@ -18,6 +18,8 @@ from imitation_learning.vmpo.categorical_vmpo_agent import CategoricalVmpoAgent
 from imitation_learning.vmpo.categorical_models import CategorialFfModel
 from rlpyt.agents.dqn.atari.atari_dqn_agent import AtariDqnAgent
 from keras.models import load_model
+from qec.multi_action_vmpo_agent import MultiActionVmpoAgent
+from qec.general_environment import GeneralSurfaceCodeEnv
 
 def simulate_policy(env, agent, render):
     static_decoder_path = './qec/referee_decoders/nn_d5_DP_p5'
@@ -37,53 +39,31 @@ def simulate_policy(env, agent, render):
         done = False
         step = 0
         reward_sum = 0
-        # env.render()
-        # time.sleep(1.1)
-        forward_reward = 0
         while not done:
             loop_start = time.time()
             step += 1
             act_pyt, agent_info = agent.step(obs_pyt, act_pyt, rew_pyt)
             action = numpify_buffer(act_pyt)[0]
-            # print('action: '+ str(action))
-            # action = env.oracle_policy.get_action(obs.state)
-            # mse = ((env.oracle_policy.get_action(obs.state) - action) ** 2).sum()
-            # mse = 0
-            # print('mse: '+ str(mse))
-            # mses.append(mse)
-
-            # action = np.argmax(observation[0].demonstration_actions)
-            # print(np.argmax(obs_pyt[0].demonstration_actions) == action)
-            # print(f'action : {action}')
             obs, reward, done, info = env.step(action)
-            # done = np.argmax(static_decoder(info.static_decoder_input)[0]) != info.correct_label
-            # forward_reward += info.forward_reward
+            done = np.argmax(static_decoder(info.static_decoder_input)[0]) != info.correct_label
             reward_sum += reward
-            # print('reward: ' + str(reward))
             observation[0] = obs
             rew_pyt[0] = float(reward)
-            sleep_time = loop_time - (time.time() - loop_start)
-            sleep_time = 0 if (sleep_time < 0) else sleep_time
-            if render:
-                time.sleep(sleep_time)
-                env.render(mode='human')
 
-        # print('episode success: ' + str(info.episode_success))
         returns.append(reward_sum)
         lifetimes.append(info.lifetime)
         print('avg return: ' + str(sum(returns) / len(returns)) + ' return: ' + str(reward_sum) + '  num_steps: ' + str(
             step))
         print(f'average lifetime: {sum(lifetimes)/len(lifetimes)} lifetime: {info.lifetime}')
-        # print(f'forward reward: {forward_reward}')
-        # print(' avg mse: ' + str(sum(mses) / len(mses)))
 
 
 def make_env(**kwargs):
     info_example = {'timeout': 0}
     import qec
     # env = gym.make('CartPole-v0')
-    env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='DP', volume_depth=1, p_meas=0.011, p_phys=0.011, use_Y=False)
+    # env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='DP', volume_depth=1, p_meas=0.011, p_phys=0.011, use_Y=False)
     # env = OptimizedSurfaceCodeEnvironment(error_model='X', volume_depth=5, p_meas=0.011, p_phys=0.011)
+    env = GeneralSurfaceCodeEnv(error_model='DP', p_meas=0.011, p_phys=0.011, use_Y=False)
     env =  GymEnvWrapper(EnvInfoWrapper(env, info_example))
     return env
 
@@ -92,7 +72,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--path', help='path to params.pkl',
                         # default='/home/alex/important_logs/transformer_ml3/params.pkl')
-                        default='./logs/run_32/params.pkl')
+                        default='./logs/vmpo_lstm_multi_action_3/params.pkl')
     parser.add_argument('--env', default='HumanoidPrimitivePretraining-v0',
                         choices=['HumanoidPrimitivePretraining-v0', 'TrackEnv-v0'])
     parser.add_argument('--algo', default='ppo', choices=['sac', 'ppo'])
@@ -111,7 +91,8 @@ if __name__ == "__main__":
     #                       eps_eval=0.001)
     # agent = CategoricalVmpoAgent(ModelCls=CategorialFfModel, model_kwargs=dict(linear_value_output=False))
     # agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False))
-    agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    # agent = CategoricalVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    agent = MultiActionVmpoAgent(ModelCls=RecurrentVmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     agent.initialize(env_spaces=env.spaces)
     agent.load_state_dict(agent_state_dict)
     agent.eval_mode(1)
