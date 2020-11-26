@@ -11,7 +11,7 @@ from rlpyt.agents.dqn.atari.atari_dqn_agent import AtariDqnAgent
 from rlpyt.runners.async_rl import AsyncRlEval
 from qec.fixed_length_env_wrapper import FixedLengthEnvWrapper
 from traj_info import EnvInfoTrajInfo
-from rlpyt.replays.non_sequence.uniform import AsyncUniformReplayBuffer
+from rlpyt.replays.non_sequence.uniform import AsyncUniformReplayBuffer, UniformReplayBuffer
 from rlpyt.models.mlp import MlpModel
 from rlpyt.utils.logging.context import logger_context
 from rlpyt.samplers.serial.sampler import SerialSampler
@@ -48,13 +48,13 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
     # sampler = AsyncCpuSampler(
     sampler = CpuSampler(
         # sampler=SerialSampler(
-        EnvCls=make_gym_env,
+        EnvCls=make_qec_env,
         # TrajInfoCls=AtariTrajInfo,
-        env_kwargs=dict(error_rate=0.005),
+        env_kwargs=dict(error_rate=0.005, error_model='DP'),
         batch_T=10,
         batch_B=num_cpus * 10,
         max_decorrelation_steps=100,
-        eval_env_kwargs=dict(error_rate=0.005, fixed_episode_length=5000),
+        eval_env_kwargs=dict(error_rate=0.005, error_model='DP', fixed_episode_length=5000),
         eval_n_envs=num_cpus,
         eval_max_steps=int(1e6),
         eval_max_trajectories=num_cpus,
@@ -69,7 +69,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         double_dqn=True,
         # target_update_tau=0.002,
         target_update_interval=5000,
-        # ReplayBufferCls=AsyncUniformReplayBuffer,
+        ReplayBufferCls=UniformReplayBuffer,
         initial_optim_state_dict=optim_state_dict,
         eps_steps=2e6,
     )
@@ -91,7 +91,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs'):
         algo=algo,
         agent=agent,
         sampler=sampler,
-        n_steps=1e8,
+        n_steps=1e9,
         log_interval_steps=3e5,
         affinity=affinity,
     )

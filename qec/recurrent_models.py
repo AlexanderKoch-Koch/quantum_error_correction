@@ -45,7 +45,7 @@ class RecurrentVmpoQECModel(torch.nn.Module):
         conv_out_size = self.conv.conv_out_size(h, w)
         self.lstm = torch.nn.LSTM(conv_out_size, lstm_size,lstm_layers)
         self.pi_head = MlpModel(conv_out_size + lstm_size, [fc_sizes,], action_size)
-        self.value_head = MlpModel(conv_out_size + lstm_size, [fc_sizes,], 1 if linear_value_output else None)
+        self.value_head = MlpModel(conv_out_size + lstm_size, [256,], 1 if linear_value_output else None)
 
     def forward(self, observation, prev_action, prev_reward, init_rnn_state):
         img = observation.type(torch.float)  # Expect torch.uint8 inputs

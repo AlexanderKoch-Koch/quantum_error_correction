@@ -14,6 +14,7 @@ from rlpyt.samplers.parallel.cpu.sampler import CpuSampler
 from rlpyt.runners.minibatch_rl import MinibatchRlEval
 import torch
 from qec.recurrent_models import SingleActionRecurrentQECModel
+from rlpyt_models import VmpoQECModel
 from qec.Environments import Surface_Code_Environment_Multi_Decoding_Cycles
 from imitation_learning.vmpo.async_vmpo import AsyncVMPO
 from imitation_learning.vmpo.v_mpo import VMPO
@@ -69,7 +70,7 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         algo = VMPO(discrete_actions=True, epochs=4, minibatches=100, initial_optim_state_dict=optim_state_dict, epsilon_alpha=0.01)
         sampler_kwargs=dict(CollectorCls=QecCpuResetCollector, eval_CollectorCls=QecCpuEvalCollector)
 
-    env_kwargs = dict(error_model='DP', error_rate=0.005, volume_depth=1)
+    env_kwargs = dict(error_model='DP', error_rate=0.005, volume_depth=5)
 
     sampler = SamplerCls(
         EnvCls=make_qec_env,
@@ -84,11 +85,11 @@ def build_and_train(id="SurfaceCode-v0", name='run', log_dir='./logs', async_mod
         TrajInfoCls=EnvInfoTrajInfo,
         **sampler_kwargs
     )
-    agent = CategoricalVmpoAgent(ModelCls=SingleActionRecurrentQECModel,
-                                 model_kwargs=dict(linear_value_output=False),
-                                 initial_model_state_dict=agent_state_dict)
+    # agent = CategoricalVmpoAgent(ModelCls=SingleActionRecurrentQECModel,
+    #                              model_kwargs=dict(linear_value_output=False, lstm_layers=2),
+    #                              initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=QECTransformerModel, model_kwargs=dict(linear_value_output=False, sequence_length=40), initial_model_state_dict=agent_state_dict)
-    # agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
+    agent = CategoricalVmpoAgent(ModelCls=VmpoQECModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     # agent = CategoricalVmpoAgent(ModelCls=CategorialFfModel, model_kwargs=dict(linear_value_output=False), initial_model_state_dict=agent_state_dict)
     runner = RunnerCls(
         algo=algo,
