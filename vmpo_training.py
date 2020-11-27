@@ -1,33 +1,22 @@
 import os
 import gym
+import torch
+import multiprocessing
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import rlpyt
+
 from rlpyt.envs.gym import GymEnvWrapper
 from logger_context import config_logger
 from rlpyt.utils.launching.affinity import make_affinity
-from rlpyt.agents.dqn.atari.atari_dqn_agent import AtariDqnAgent
 from traj_info import EnvInfoTrajInfo
 from rlpyt.runners.async_rl import AsyncRlEval
 from rlpyt.samplers.async_.cpu_sampler import AsyncCpuSampler
-from rlpyt.samplers.serial.sampler import SerialSampler
-from rlpyt.samplers.parallel.cpu.sampler import CpuSampler
-from rlpyt.runners.minibatch_rl import MinibatchRlEval
-import torch
-from qec.recurrent_models import SingleActionRecurrentQECModel
-from rlpyt_models import VmpoQECModel
-from qec.Environments import Surface_Code_Environment_Multi_Decoding_Cycles
-from imitation_learning.vmpo.async_vmpo import AsyncVMPO
-from imitation_learning.vmpo.v_mpo import VMPO
-from imitation_learning.vmpo.categorical_vmpo_agent import CategoricalVmpoAgent
-from imitation_learning.vmpo.categorical_models import CategorialFfModel
-from qec_vmpo_agent import QECVmpoAgent
+from qec.rlpyt_models import VmpoQECModel
+from qec.vmpo.v_mpo import VMPO
+from qec.vmpo.async_vmpo import AsyncVMPO
+from qec.vmpo.categorical_vmpo_agent import CategoricalVmpoAgent
 from qec.qec_collectors import QecCpuEvalCollector, QecDbCpuResetCollector, QecCpuResetCollector
 from qec.optimized_environment import OptimizedSurfaceCodeEnvironment
 from qec.general_environment import GeneralSurfaceCodeEnv
-from qec.multi_action_vmpo_agent import MultiActionVmpoAgent
-from qec.fixed_length_env_wrapper import FixedLengthEnvWrapper
-import GPUtil
-import multiprocessing
 from rlpyt.samplers.parallel.cpu.sampler import CpuSampler
 from qec.synchronous_runner import QECSynchronousRunner
 
@@ -112,7 +101,6 @@ def make_qec_env(error_model, error_rate, volume_depth=5):
 
 
 def make_gym_env(error_model, **kwargs):
-    import qec
     info_example = {'timeout': 0}
     # print('making env: ' + str(kwargs))
     static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'

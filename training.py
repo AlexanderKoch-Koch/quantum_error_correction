@@ -3,24 +3,13 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from rlpyt.envs.gym import GymEnvWrapper
 from logger_context import config_logger
 from rlpyt.utils.launching.affinity import make_affinity
-from rlpyt.samplers.async_.cpu_sampler import AsyncCpuSampler
-# from rlpyt.envs.atari.atari_env import AtariEnv, AtariTrajInfo
 from rlpyt.algos.dqn.dqn import DQN
-from rlpyt.agents.dqn.dqn_agent import DqnAgent
 from rlpyt.agents.dqn.atari.atari_dqn_agent import AtariDqnAgent
-from rlpyt.runners.async_rl import AsyncRlEval
 from qec.fixed_length_env_wrapper import FixedLengthEnvWrapper
 from traj_info import EnvInfoTrajInfo
-from rlpyt.replays.non_sequence.uniform import AsyncUniformReplayBuffer, UniformReplayBuffer
-from rlpyt.models.mlp import MlpModel
-from rlpyt.utils.logging.context import logger_context
-from rlpyt.samplers.serial.sampler import SerialSampler
+from rlpyt.replays.non_sequence.uniform import UniformReplayBuffer
 from rlpyt.samplers.parallel.cpu.sampler import CpuSampler
-from rlpyt.runners.minibatch_rl import MinibatchRlEval
-import qec
-import gym
-import torch
-from rlpyt_models import QECModel
+from qec.rlpyt_models import QECModel
 from qec.Environments import Surface_Code_Environment_Multi_Decoding_Cycles
 from qec.synchronous_runner import QECSynchronousRunner
 import multiprocessing
@@ -111,7 +100,6 @@ def make_qec_env(error_model, error_rate, volume_depth=5, **kwargs):
     return GymEnvWrapper(env)
 
 def make_gym_env(**kwargs):
-    import qec
     info_example = {'timeout': 0}
     # print('making env: ' + str(kwargs))
     static_decoder_path = '/home/alex/DeepQ-Decoding/example_notebooks/referee_decoders/nn_d5_X_p5'

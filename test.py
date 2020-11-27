@@ -1,27 +1,15 @@
 import argparse
-from rlpyt_models import QECModel
-import gym
 import torch
 import time
 import numpy as np
 from qec.Environments import Surface_Code_Environment_Multi_Decoding_Cycles
-from qec.optimized_environment import OptimizedSurfaceCodeEnvironment
-from rlpyt.envs.gym import GymEnvWrapper, EnvInfoWrapper
+from rlpyt.envs.gym import EnvInfoWrapper
 from rlpyt.utils.buffer import torchify_buffer, buffer_from_example, numpify_buffer
 from rlpyt.envs.gym import GymEnvWrapper
-from logger_context import config_logger
-from rlpyt.utils.launching.affinity import make_affinity
-from rlpyt.algos.dqn.dqn import DQN
-from qec_vmpo_agent import QECVmpoAgent
-from rlpyt_models import QECModel, VmpoQECModel, RecurrentVmpoQECModel
+from qec.rlpyt_models import VmpoQECModel
 from imitation_learning.vmpo.categorical_vmpo_agent import CategoricalVmpoAgent
-from imitation_learning.vmpo.categorical_models import CategorialFfModel
-from rlpyt.agents.dqn.atari.atari_dqn_agent import AtariDqnAgent
 from keras.models import load_model
-from qec.multi_action_vmpo_agent import MultiActionVmpoAgent
-from qec.recurrent_models import MultiActionRecurrentQECModel
-from qec.general_environment import GeneralSurfaceCodeEnv
-from qec.recurrent_models import SingleActionRecurrentQECModel
+
 
 def simulate_policy(env, agent, render):
     static_decoder_path = './qec/referee_decoders/nn_d5_DP_p5'
@@ -61,7 +49,6 @@ def simulate_policy(env, agent, render):
 
 def make_env(**kwargs):
     info_example = {'timeout': 0}
-    import qec
     # env = gym.make('CartPole-v0')
     env = Surface_Code_Environment_Multi_Decoding_Cycles(error_model='DP', volume_depth=5, p_meas=0.011, p_phys=0.011, use_Y=False)
     # env = OptimizedSurfaceCodeEnvironment(error_model='X', volume_depth=5, p_meas=0.011, p_phys=0.011)

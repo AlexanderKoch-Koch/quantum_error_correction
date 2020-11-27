@@ -1,3 +1,8 @@
+"""mostly copy from https://github.com/R-Sweke/DeepQ-Decoding. But referee decoder is not executed in the step function.
+The input for the referee decoder is returned in the info dict. The qec_collectors are modified to use the info dict to
+determine if the episode is finished. The qec_collectors are able to use a large batch size. This makes the simulation
+much faster"""
+
 # ----- (0) Imports ---------------------------------------------------------------------------------------------------------------
 
 from qec.Function_Library import *
@@ -146,23 +151,18 @@ class OptimizedSurfaceCodeEnvironment(gym.Env):
         :return: self.done: The boolean terminal state indicator
         :return: info: A dictionary via which additional diagnostic information can be provided. Empty here.
         """
-        start = time.time()
         done_identity = False
         action = int(action) # make sure action is integer
         if action == self.identity_index or int(self.completed_actions[action]) == 1:
             done_identity = True
         # 1) Apply the action to the hidden state
         action_lattice = index_to_move(self.d, action, self.error_model, self.use_Y)
-        # print(f'0.1 {time.time() - s}')
         self.hidden_state = obtain_new_error_configuration(self.hidden_state, action_lattice)
-        # print(f'0.2 {time.time() - s}')
 
         # 2) Calculate the reward
         self.current_true_syndrome = self.generate_surface_code_syndrome_NoFT_efficient(self.hidden_state, self.qubits)
-        # print(f'afteer syndrome generation {time.time() - s}')
         current_true_syndrome_vector = np.reshape(self.current_true_syndrome, (self.d + 1) ** 2)
         num_anyons = np.sum(self.current_true_syndrome)
-        # print(f'1 {time.time() - s}')
 
         correct_label = np.argmax(generate_one_hot_labels_surface_code(self.hidden_state, self.error_model))
         static_decoder_input = np.array([current_true_syndrome_vector])
@@ -171,7 +171,6 @@ class OptimizedSurfaceCodeEnvironment(gym.Env):
             reward = 1.0
         # elif self.static_decoder is None or np.argmax(self.static_decoder(static_decoder_input)[0]) != np.argmax(correct_label):
         #     self.done = True
-        # print(f'2 {time.time() - s}')
 
         # 3) If necessary, apply multiple errors and obtain an error volume - ensure that a non-trivial volume is generated
         if done_identity:
@@ -203,7 +202,6 @@ class OptimizedSurfaceCodeEnvironment(gym.Env):
             # update the part of the state which shows the actions you have just taken
             self.board_state[self.volume_depth:, :, :] = np.zeros(
                 (self.n_action_layers, 2 * self.d + 1, 2 * self.d + 1), int)
-            # print(f'2.1 {time.time() - s}')
         else:
             # Update the completed actions and legal moves
             self.completed_actions[action] = int(not (self.completed_actions[action]))
@@ -222,12 +220,10 @@ class OptimizedSurfaceCodeEnvironment(gym.Env):
                 self.board_state[self.volume_depth + k, :, :] = self.padding_actions(
                     self.completed_actions[k * self.d ** 2:(k + 1) * self.d ** 2])
 
-            # print(f'2.2 {time.time() - s}')
         obs = self.board_state if self.channels_first else self.board_state.transpose((1, 2, 0))
         info = dict(lifetime=self.lifetime,
                     static_decoder_input=static_decoder_input,
                     correct_label=correct_label)
-        # print(f'5 {time.time() - s}')
         return obs, reward, self.done, info
 
     def initialize_state(self):
@@ -420,7 +416,6 @@ class OptimizedSurfaceCodeEnvironment(gym.Env):
         :return: syndrome: The syndrome corresponding to input error
         """
 
-        s = time.time()
         d = np.shape(error)[0]
         # syndrome = np.zeros((d + 1, d + 1), int)
         # for i in range(d):
@@ -438,11 +433,9 @@ class OptimizedSurfaceCodeEnvironment(gym.Env):
         mask = np.expand_dims((error != 0), axis=-1).repeat(qubits.shape[2], axis=-1)
         mask = mask * (qubits[:, :, :, 2] != expanded_error) * (qubits[:, :, : , 2] != 0)
         for i, j, k in np.argwhere(mask == True):
-            # print(f'{i} {j} {k}')
             a = qubits[i, j, k, 0]
             b = qubits[i, j, k, 1]
             efficient_syndrome[a, b] = 1 - efficient_syndrome[a, b]
-        # print(f'efficient generation took {time.time() - s}')
         # assert (efficient_syndrome == syndrome).all(), 'syndrome false'
         return efficient_syndrome
 

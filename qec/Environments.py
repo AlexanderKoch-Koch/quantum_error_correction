@@ -1,3 +1,5 @@
+"""copy from https://github.com/R-Sweke/DeepQ-Decoding"""
+
 # ----- (0) Imports ---------------------------------------------------------------------------------------------------------------
 
 from qec.Function_Library import *

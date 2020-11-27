@@ -6,8 +6,8 @@ from rlpyt.models.conv2d import Conv2dModel
 from rlpyt.models.mlp import MlpModel
 from rlpyt.models.dqn.dueling import DuelingHeadModel
 from rlpyt.models.pg.atari_lstm_model import RnnState
-from imitation_learning.vmpo.compressive_transformer import SIZES, State
-from imitation_learning.models.compressive_transformer_pytorch import CompressiveTransformerPyTorch, Memory
+from qec.vmpo.compressive_transformer_pytorch import CompressiveTransformerPyTorch, Memory
+from qec.vmpo.compressive_transformer import SIZES, State
 
 
 class QECModel(torch.nn.Module):
