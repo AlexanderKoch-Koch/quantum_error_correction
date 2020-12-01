@@ -24,9 +24,10 @@ The environment doesn't execute the referee decoder itself. Instead, it returns 
 output in the info dict. The collector can then combine the inputs from multiple environments and
 use the referee decoder with a large batch size. This is much faster.
 
-multi_action_vmpo_training starts training with a simplified environment interaction. It uses 
-independent bernoulli distributions for all possible pauli operations. Thus it can execute multiple pauli
-operations in one feed-forward pass.
+multi_action_vmpo_training starts training with a simplified environment interaction. 
+It uses independent bernoulli distributions for all possible pauli operations. Thus it can execute multiple pauli
+operations in one feed-forward pass. 
+![](multi_action.png)
 
 
 Here is a comparison:
